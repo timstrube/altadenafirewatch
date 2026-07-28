@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Altadena Fire Watch</title>
+<style>
+  :root {
+    --bg: #FBFAF6;
+    --card: #ffffff;
+    --border: rgba(44,44,42,0.10);
+    --text: #2C2C2A;
+    --text-secondary: #5F5E5A;
+    --text-muted: #8B8A84;
+
+    --low-bg: #EAF3DE;    --low-text: #3B6D11;   --low-fg: #173404;
+    --guard-bg: #FAEEDA;  --guard-text: #854F0B; --guard-fg: #412402;
+    --elev-bg: #FBE7D6;   --elev-text: #99521A;  --elev-fg: #4A2A0C;
+    --high-bg: #F5D9D3;   --high-text: #99361D;  --high-fg: #4A1B0C;
+    --crit-bg: #F7C1C1;   --crit-text: #791F1F;  --crit-fg: #501313;
+
+    --neutral-bg: #F1EFE8; --neutral-text: #5F5E5A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 1.5rem 1.25rem 3rem;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+
+  header .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  header .brand svg { flex-shrink: 0; }
+
+  .hero {
+    border-radius: 20px;
+    padding: 1.75rem 1.5rem;
+    text-align: center;
+    margin-bottom: 1.25rem;
+    transition: background 0.4s ease;
+  }
+
+  .hero .eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    opacity: 0.85;
+  }
+
+  .hero .level {
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    line-height: 1.15;
+  }
+
+  .hero .updated {
+    font-size: 13px;
+    opacity: 0.75;
+  }
+
+  .rows { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.25rem; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--card);
+    border: 0.5px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+
+  .row .left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .row .icon { flex-shrink: 0; opacity: 0.65; }
+  .row .label { font-size: 14.5px; font-weight: 500; }
+  .row .detail { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
+
+  .badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  footer a { color: var(--text-muted); }
+
+  .error-note {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <svg width="20" height="20" viewBox="0 -960 960 960" fill="#3B6D11">
+        <path d="M240-400q0 52 21 98.5t60 81.5q-1-5-1-9v-9q0-32 12-60t35-51l113-111 113 111q23 23 35 51t12 60v9q0 4-1 9 39-35 60-81.5t21-98.5q0-50-18.5-94.5T648-574q-20 13-42 19.5t-45 6.5q-62 0-107.5-41T401-690q-39 33-69 68.5t-50.5 72Q261-513 250.5-475T240-400Zm240 52-57 56q-11 11-17 25t-6 29q0 32 23.5 55t56.5 23q33 0 56.5-23t23.5-55q0-16-6-29.5T537-292l-57-56Zm0-492v132q0 34 23.5 57t57.5 23q18 0 33.5-7.5T622-658l18-22q74 42 117 117t43 163q0 134-93 227T480-80q-134 0-227-93t-93-227q0-129 86.5-245T480-840Z"/>
+      </svg>
+      <span>Altadena Fire Watch</span>
+    </div>
+  </header>
+
+  <div class="hero" id="hero" style="background: var(--neutral-bg);">
+    <div class="eyebrow" id="hero-eyebrow" style="color: var(--neutral-text);">Current conditions</div>
+    <div id="hero-score" style="font-size:40px; font-weight:600; line-height:1; margin-bottom:8px;">—</div>
+    <div style="background: rgba(0,0,0,0.08); border-radius: 20px; height: 6px; width: 160px; margin: 0 auto 10px;">
+      <div id="hero-bar" style="height: 100%; width: 0%; border-radius: 20px; background: var(--neutral-text); transition: width 0.4s ease, background 0.4s ease;"></div>
+    </div>
+    <div class="level" id="hero-level" style="color: var(--neutral-text); font-size:20px; margin-bottom:6px;">Loading…</div>
+    <div class="updated" id="hero-updated" style="color: var(--neutral-text);">&nbsp;</div>
+  </div>
+
+  <div class="rows">
+
+    <div class="row" id="row-weather">
+      <div class="left">
+        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+        <div>
+          <div class="label">Weather</div>
+          <div class="detail" id="weather-detail">Fetching…</div>
+        </div>
+      </div>
+      <div class="badge" id="weather-badge" style="background: var(--neutral-bg); color: var(--neutral-text);">—</div>
+    </div>
+
+    <div class="row" id="row-redflag">
+      <div class="left">
+        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        <div>
+          <div class="label">Red Flag Warning</div>
+          <div class="detail" id="redflag-detail">Fetching…</div>
+        </div>
+      </div>
+      <div class="badge" id="redflag-badge" style="background: var(--neutral-bg); color: var(--neutral-text);">—</div>
+    </div>
+
+    <div class="row" id="row-aq">
+      <div class="left">
+        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/></svg>
+        <div>
+          <div class="label">Air Quality</div>
+          <div class="detail" id="aq-detail">Fetching…</div>
+        </div>
+      </div>
+      <div class="badge" id="aq-badge" style="background: var(--neutral-bg); color: var(--neutral-text);">—</div>
+    </div>
+
+    <div class="row" id="row-incidents">
+      <div class="left">
+        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div>
+          <div class="label">Confirmed Incidents</div>
+          <div class="detail" id="incidents-detail">Fetching…</div>
+        </div>
+      </div>
+      <div class="badge" id="incidents-badge" style="background: var(--neutral-bg); color: var(--neutral-text);">—</div>
+    </div>
+
+  </div>
+
+  <footer>
+    Weather data from a meteorological station located around N. Lake Ave. and E. Altadena Drive, with a regional model as backup. Air quality from nearby PurpleAir sensors. Alerts from the National Weather Service. Incident and evacuation data from NIFC and Cal OES.<br><br>
+    Not an official emergency alert system. In an active emergency, follow county and fire department instructions.
+  </footer>
+
+</div>
+
+<script>
+/* ===================================================================
+   ALTADENA FIRE WATCH — public status page
+   Ported from a private Home Assistant composite risk-score card.
+   All data sources below are free and public. Only PurpleAir requires
+   a (free) registered key — see AQ section for fallback behavior.
+   =================================================================== */
+
+const ALTADENA = { lat: 34.1897, lon: -118.1312 };
+
+// Your Cloudflare Worker — aggregates Ambient Weather + PurpleAir server-side
+// so no API keys are ever exposed to the browser.
+const WORKER_URL = "https://firewatch-api.timothy-strube.workers.dev/";
+
+// Bounding box roughly covering Altadena + immediate foothills, used for
+// point-in-area queries against NIFC and Cal OES feature services.
+const BBOX = { xmin: -118.21, ymin: 34.14, xmax: -118.07, ymax: 34.26 };
+
+const RISK_THRESHOLDS = { guarded: 15, elevated: 30, high: 50, critical: 70 };
+
+const state = {
+  weatherScore: 0, weatherDetail: "", weatherLevel: "low",
+  nwsScore: 0, nwsDetail: "", nwsLevel: "low",
+  aqScore: 0, aqDetail: "", aqLevel: "low", aqAvailable: false,
+  incidentScore: 0, incidentDetail: "", incidentLevel: "low",
+};
+
+function levelStyle(level) {
+  switch (level) {
+    case "critical": return { bg: "var(--crit-bg)", text: "var(--crit-text)", fg: "var(--crit-fg)", label: "Critical" };
+    case "high":     return { bg: "var(--high-bg)", text: "var(--high-text)", fg: "var(--high-fg)", label: "High" };
+    case "elevated": return { bg: "var(--elev-bg)", text: "var(--elev-text)", fg: "var(--elev-fg)", label: "Elevated" };
+    case "guarded":  return { bg: "var(--guard-bg)", text: "var(--guard-text)", fg: "var(--guard-fg)", label: "Guarded" };
+    default:         return { bg: "var(--low-bg)", text: "var(--low-text)", fg: "var(--low-fg)", label: "Low" };
+  }
+}
+
+function setBadge(rowId, level, textOverride) {
+  const s = levelStyle(level);
+  const el = document.getElementById(rowId + "-badge");
+  el.style.background = s.bg;
+  el.style.color = s.text;
+  el.textContent = textOverride || s.label;
+}
+
+function setDetail(rowId, text) {
+  document.getElementById(rowId + "-detail").textContent = text;
+}
+
+function scoreToLevel(score) {
+  if (score >= RISK_THRESHOLDS.critical) return "critical";
+  if (score >= RISK_THRESHOLDS.high) return "high";
+  if (score >= RISK_THRESHOLDS.elevated) return "elevated";
+  if (score >= RISK_THRESHOLDS.guarded) return "guarded";
+  return "low";
+}
+
+function renderHero() {
+  const total = Math.max(0, Math.min(100,
+    state.weatherScore + state.nwsScore + state.aqScore + state.incidentScore
+  ));
+  const level = scoreToLevel(total);
+  const s = levelStyle(level);
+  const hero = document.getElementById("hero");
+  hero.style.background = s.bg;
+  document.getElementById("hero-eyebrow").style.color = s.fg;
+  document.getElementById("hero-level").style.color = s.fg;
+  document.getElementById("hero-score").style.color = s.fg;
+  document.getElementById("hero-updated").style.color = s.text;
+  document.getElementById("hero-score").textContent = Math.round(total);
+  document.getElementById("hero-bar").style.width = Math.round(total) + "%";
+  document.getElementById("hero-bar").style.background = s.text;
+  document.getElementById("hero-level").textContent = s.label + " Risk";
+  document.getElementById("hero-updated").textContent =
+    "Updated " + new Date().toLocaleDateString([], { month: "short", day: "numeric" }) +
+    " at " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+/* ---------------- Weather — your Ambient Weather station via Worker,
+   falling back to Open-Meteo (free, no key) if the station is offline ---------------- */
+async function loadWeather() {
+  let gust, humidity, dir, tempF, sourceLabel;
+
+  try {
+    const res = await fetch(WORKER_URL);
+    const data = await res.json();
+    if (data.weather && data.weather.source === "ambient") {
+      gust = data.weather.gustMph;
+      humidity = data.weather.humidity;
+      dir = data.weather.windDirDeg;
+      tempF = data.weather.tempF;
+      sourceLabel = "your station";
+    }
+  } catch (e) {
+    console.error("Worker weather fetch failed:", e);
+  }
+
+  if (gust === undefined) {
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${ALTADENA.lat}&longitude=${ALTADENA.lon}` +
+        `&current=wind_speed_10m,wind_gusts_10m,wind_direction_10m,relative_humidity_2m,temperature_2m` +
+        `&wind_speed_unit=mph&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const c = data.current;
+      gust = Math.round(c.wind_gusts_10m);
+      humidity = Math.round(c.relative_humidity_2m);
+      dir = c.wind_direction_10m;
+      tempF = Math.round(c.temperature_2m);
+      sourceLabel = "regional model";
+    } catch (e) {
+      console.error("Open-Meteo fallback failed:", e);
+    }
+  }
+
+  if (gust === undefined) {
+    setDetail("weather", "Unavailable — see console (F12) for details");
+    setBadge("weather", "low", "—");
+    renderHero();
+    return;
+  }
+  if (tempF === undefined) tempF = 70; // neutral fallback, shouldn't normally trigger
+
+  const compass = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  const dirLabel = compass[Math.round(dir / 22.5) % 16];
+  const santaAna = dir >= 20 && dir <= 100;
+
+  // Fosberg Fire Weather Index (Fosberg, 1978) — the same category of formula
+  // NWS/USFS use operationally, combining temperature, humidity, and wind
+  // into a single fire-danger number. Typical operational bands run roughly:
+  // <15 low, 15-30 moderate, 30-50 high, 50-75 very high, >75 extreme.
+  function fosbergIndex(tempF, rh, windMph) {
+    let m; // equilibrium fuel moisture content
+    if (rh < 10) {
+      m = 0.03229 + 0.281073 * rh - 0.000578 * rh * tempF;
+    } else if (rh < 50) {
+      m = 2.22749 + 0.160107 * rh - 0.01478 * tempF;
+    } else {
+      m = 21.0606 + 0.005565 * rh * rh - 0.00035 * rh * tempF - 0.483199 * rh;
+    }
+    const mRatio = m / 30;
+    const n = 1 - 2 * mRatio + 1.5 * mRatio * mRatio - 0.5 * mRatio * mRatio * mRatio;
+    return (n * Math.sqrt(1 + windMph * windMph)) / 0.3002;
+  }
+
+  const ffwi = fosbergIndex(tempF, humidity, gust);
+
+  // Scale FFWI (roughly 0-100+) down into this row's 0-50 sub-score band,
+  // then add a Santa Ana bonus — the Eaton Fire itself was wind-driven from
+  // this exact corridor, so direction carries real weight here beyond speed alone.
+  let score = Math.min(50, ffwi * 0.5);
+  if (santaAna) score = Math.min(50, score + 5);
+  score = Math.round(score);
+
+  state.weatherScore = score;
+  state.weatherLevel = score >= 20 ? "elevated" : score > 0 ? "guarded" : "low";
+
+  setDetail("weather", `Gust ${gust} mph · RH ${humidity}% · ${tempF}°F · ${dirLabel}${santaAna ? " (Santa Ana)" : ""}`);
+  setBadge("weather", state.weatherLevel, score >= 20 ? "High" : score > 0 ? "Moderate" : "Low");
+  renderHero();
+}
+
+/* ---------------- Red flag warning (NWS — free, no key required) ---------------- */
+async function loadNWS() {
+  try {
+    const url = `https://api.weather.gov/alerts/active?point=${ALTADENA.lat},${ALTADENA.lon}`;
+    const res = await fetch(url, { headers: { "Accept": "application/geo+json" } });
+    const data = await res.json();
+    const events = (data.features || []).map(f => f.properties.event);
+
+    const redFlag = events.includes("Red Flag Warning");
+    const watch = events.includes("Fire Weather Watch");
+
+    if (redFlag) {
+      state.nwsScore = 40; state.nwsLevel = "critical";
+      setDetail("redflag", "Active now");
+      setBadge("redflag", "critical", "Warning");
+    } else if (watch) {
+      state.nwsScore = 15; state.nwsLevel = "elevated";
+      setDetail("redflag", "Fire weather watch active");
+      setBadge("redflag", "elevated", "Watch");
+    } else {
+      state.nwsScore = 0; state.nwsLevel = "low";
+      setDetail("redflag", "No active alerts");
+      setBadge("redflag", "low", "None");
+    }
+  } catch (e) {
+    console.error("NWS alerts fetch failed:", e);
+    setDetail("redflag", "Unavailable — see console (F12) for details");
+    setBadge("redflag", "low", "—");
+  }
+  renderHero();
+}
+
+/* ---------------- Air quality — via Worker (PurpleAir key stays server-side) ---------------- */
+async function loadAirQuality() {
+  try {
+    const res = await fetch(WORKER_URL);
+    const data = await res.json();
+    if (!data.air || data.air.source !== "purpleair" || data.air.avgPM25 === null) {
+      throw new Error("no readings");
+    }
+    const avgPM = data.air.avgPM25;
+
+    let score = 0;
+    if (avgPM >= 55) score = 30;
+    else if (avgPM >= 35) score = 20;
+    else if (avgPM >= 12) score = 8;
+
+    state.aqScore = score;
+    state.aqAvailable = true;
+    state.aqLevel = score >= 15 ? "elevated" : score > 0 ? "guarded" : "low";
+
+    setDetail("aq", `Avg PM2.5 ${avgPM} µg/m³ · ${data.air.sensorCount} sensor(s)`);
+    setBadge("aq", state.aqLevel, score >= 15 ? "High" : score > 0 ? "Moderate" : "Low");
+  } catch (e) {
+    console.error("Air quality fetch failed:", e);
+    setDetail("aq", "Unavailable — see console (F12) for details");
+    setBadge("aq", "low", "—");
+  }
+  renderHero();
+}
+
+/* ---------------- Incidents: NIFC current fires + Cal OES evac zones ---------------- */
+async function loadIncidents() {
+  const envelope = `${BBOX.xmin},${BBOX.ymin},${BBOX.xmax},${BBOX.ymax}`;
+  let nifcCount = 0;
+  let evacActive = false;
+  let evacNote = "";
+  let nifcOk = false;
+  let evacOk = false;
+
+  try {
+    const nifcUrl = "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/" +
+      "WFIGS_Incident_Locations_Current/FeatureServer/0/query" +
+      `?where=1%3D1&geometry=${envelope}&geometryType=esriGeometryEnvelope` +
+      "&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=IncidentName&returnGeometry=false&f=json";
+    const nifcRes = await fetch(nifcUrl);
+    const nifcData = await nifcRes.json();
+    nifcCount = (nifcData.features || []).length;
+    nifcOk = true;
+  } catch (e) { console.error("NIFC fetch failed:", e); }
+
+  try {
+    // Cal OES evacuation aggregation layer (Zonehaven/Genasys schema).
+    // Confirmed field name via /0?f=json metadata: STATUS (values: NORMAL,
+    // EVACUATION WARNING, EVACUATION ORDER, SHELTER IN PLACE).
+    const evacUrl = "https://services.arcgis.com/BLN4oKB0N1YSgvY8/arcgis/rest/services/" +
+      "CA_EVACUATIONS_CalOESHosted_view/FeatureServer/0/query" +
+      `?where=1%3D1&geometry=${envelope}&geometryType=esriGeometryEnvelope` +
+      "&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=STATUS,ZONE_NAME,COUNTY&returnGeometry=false&f=json";
+    const evacRes = await fetch(evacUrl);
+    const evacData = await evacRes.json();
+    const features = evacData.features || [];
+
+    const active = features.filter(f => {
+      const status = (f.attributes || {}).STATUS;
+      return status && String(status).toUpperCase() !== "NORMAL";
+    });
+
+    evacActive = active.length > 0;
+    evacNote = evacActive
+      ? active.map(f => `${f.attributes.ZONE_NAME || "Zone"} (${f.attributes.STATUS})`).slice(0, 2).join(", ")
+      : "";
+    evacOk = true;
+  } catch (e) { console.error("Cal OES evac fetch failed:", e); }
+
+  let score = 0;
+  let level = "low";
+  let detail;
+
+  if (!nifcOk && !evacOk) {
+    detail = "Unavailable — see console (F12) for details";
+  } else if (evacActive) {
+    score = 60; level = "critical";
+    detail = evacNote;
+  } else if (nifcCount > 0) {
+    score = 20; level = "elevated";
+    detail = `${nifcCount} nearby fire incident(s), no evacuations`;
+  } else {
+    detail = "No active incidents detected";
+  }
+
+  state.incidentScore = score;
+  state.incidentLevel = level;
+  setDetail("incidents", detail);
+  setBadge("incidents", level, score >= 50 ? "Critical" : score > 0 ? "Elevated" : "None");
+  renderHero();
+}
+
+// Kick off all four sources in parallel, then refresh every 10 minutes.
+function loadAll() {
+  loadWeather();
+  loadNWS();
+  loadAirQuality();
+  loadIncidents();
+}
+
+loadAll();
+setInterval(loadAll, 10 * 60 * 1000);
+</script>
+
+</body>
+</html>
