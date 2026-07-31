@@ -293,7 +293,7 @@ async function loadWeather() {
   let gust, humidity, dir, tempF, sourceLabel;
 
   try {
-    const res = await fetch(WORKER_URL);
+    const res = await fetch(WORKER_URL, { cache: "no-store" });
     const data = await res.json();
     if (data.weather && data.weather.source === "ambient") {
       gust = data.weather.gustMph;
@@ -311,7 +311,7 @@ async function loadWeather() {
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${ALTADENA.lat}&longitude=${ALTADENA.lon}` +
         `&current=wind_speed_10m,wind_gusts_10m,wind_direction_10m,relative_humidity_2m,temperature_2m` +
         `&wind_speed_unit=mph&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles`;
-      const res = await fetch(url);
+      const res = await fetch(url, { cache: "no-store" });
       const data = await res.json();
       const c = data.current;
       gust = Math.round(c.wind_gusts_10m);
@@ -375,7 +375,7 @@ async function loadWeather() {
 async function loadNWS() {
   try {
     const url = `https://api.weather.gov/alerts/active?point=${ALTADENA.lat},${ALTADENA.lon}`;
-    const res = await fetch(url, { headers: { "Accept": "application/geo+json" } });
+    const res = await fetch(url, { headers: { "Accept": "application/geo+json" }, cache: "no-store" });
     const data = await res.json();
     const events = (data.features || []).map(f => f.properties.event);
 
@@ -406,7 +406,7 @@ async function loadNWS() {
 /* ---------------- Air quality — via Worker (PurpleAir key stays server-side) ---------------- */
 async function loadAirQuality() {
   try {
-    const res = await fetch(WORKER_URL);
+    const res = await fetch(WORKER_URL, { cache: "no-store" });
     const data = await res.json();
     if (!data.air || data.air.source !== "purpleair" || data.air.avgPM25 === null) {
       throw new Error("no readings");
@@ -446,7 +446,7 @@ async function loadIncidents() {
       "WFIGS_Incident_Locations_Current/FeatureServer/0/query" +
       `?where=1%3D1&geometry=${envelope}&geometryType=esriGeometryEnvelope` +
       "&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=IncidentName&returnGeometry=false&f=json";
-    const nifcRes = await fetch(nifcUrl);
+    const nifcRes = await fetch(nifcUrl, { cache: "no-store" });
     const nifcData = await nifcRes.json();
     nifcCount = (nifcData.features || []).length;
     nifcOk = true;
@@ -460,7 +460,7 @@ async function loadIncidents() {
       "CA_EVACUATIONS_CalOESHosted_view/FeatureServer/0/query" +
       `?where=1%3D1&geometry=${envelope}&geometryType=esriGeometryEnvelope` +
       "&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=STATUS,ZONE_NAME,COUNTY&returnGeometry=false&f=json";
-    const evacRes = await fetch(evacUrl);
+    const evacRes = await fetch(evacUrl, { cache: "no-store" });
     const evacData = await evacRes.json();
     const features = evacData.features || [];
 
