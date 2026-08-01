@@ -3,8 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Altadena Fire Watch</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960' fill='%233B6D11'%3E%3Cpath d='M240-400q0 52 21 98.5t60 81.5q-1-5-1-9v-9q0-32 12-60t35-51l113-111 113 111q23 23 35 51t12 60v9q0 4-1 9 39-35 60-81.5t21-98.5q0-50-18.5-94.5T648-574q-20 13-42 19.5t-45 6.5q-62 0-107.5-41T401-690q-39 33-69 68.5t-50.5 72Q261-513 250.5-475T240-400Zm240 52-57 56q-11 11-17 25t-6 29q0 32 23.5 55t56.5 23q33 0 56.5-23t23.5-55q0-16-6-29.5T537-292l-57-56Zm0-492v132q0 34 23.5 57t57.5 23q18 0 33.5-7.5T622-658l18-22q74 42 117 117t43 163q0 134-93 227T480-80q-134 0-227-93t-93-227q0-129 86.5-245T480-840Z'/%3E%3C/svg%3E">
+<title>Altadena Ready</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960' fill='%233B6D11'%3E%3Cpath d='M420-340h120v-100h100v-120H540v-100H420v100H320v120h100v100Zm60 260q-139-35-229.5-159.5T160-516v-244l320-120 320 120v244q0 152-90.5 276.5T480-80Zm0-84q104-33 172-132t68-220v-189l-240-90-240 90v189q0 121 68 220t172 132Zm0-316Z'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #FBFAF6;
@@ -29,7 +32,7 @@
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-family: "Host Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -49,8 +52,8 @@
   header .brand {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 19px;
+    gap: 3px;
+    font-size: 20px;
     font-weight: 600;
   }
 
@@ -87,6 +90,34 @@
 
   .rows { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.25rem; }
 
+  .source-row { display: flex; gap: 10px; }
+
+  .source-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: var(--card);
+    border: 0.5px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 8px;
+    min-height: 60px;
+    text-decoration: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .source-btn:hover {
+    background: var(--low-bg);
+    border-color: var(--low-text);
+  }
+
+  .source-btn img { border-radius: 3px; }
+
   .row {
     display: flex;
     align-items: center;
@@ -96,6 +127,7 @@
     border: 0.5px solid var(--border);
     border-radius: 14px;
     padding: 14px 16px;
+    min-height: 60px;
   }
 
   .row .left { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -137,10 +169,10 @@
 
   <header>
     <div class="brand">
-      <svg width="26" height="26" viewBox="0 -960 960 960" fill="#3B6D11">
-        <path d="M240-400q0 52 21 98.5t60 81.5q-1-5-1-9v-9q0-32 12-60t35-51l113-111 113 111q23 23 35 51t12 60v9q0 4-1 9 39-35 60-81.5t21-98.5q0-50-18.5-94.5T648-574q-20 13-42 19.5t-45 6.5q-62 0-107.5-41T401-690q-39 33-69 68.5t-50.5 72Q261-513 250.5-475T240-400Zm240 52-57 56q-11 11-17 25t-6 29q0 32 23.5 55t56.5 23q33 0 56.5-23t23.5-55q0-16-6-29.5T537-292l-57-56Zm0-492v132q0 34 23.5 57t57.5 23q18 0 33.5-7.5T622-658l18-22q74 42 117 117t43 163q0 134-93 227T480-80q-134 0-227-93t-93-227q0-129 86.5-245T480-840Z"/>
+      <svg width="30" height="30" viewBox="0 -960 960 960" fill="#3B6D11">
+        <path d="M420-340h120v-100h100v-120H540v-100H420v100H320v120h100v100Zm60 260q-139-35-229.5-159.5T160-516v-244l320-120 320 120v244q0 152-90.5 276.5T480-80Zm0-84q104-33 172-132t68-220v-189l-240-90-240 90v189q0 121 68 220t172 132Zm0-316Z"/>
       </svg>
-      <span>Altadena Fire Watch</span>
+      <span>Altadena Ready</span>
     </div>
   </header>
 
@@ -200,11 +232,26 @@
       <div class="badge" id="incidents-badge" style="background: var(--neutral-bg); color: var(--neutral-text);">—</div>
     </div>
 
+    <div class="source-row">
+      <a href="https://protect.genasys.com/en/map/34.189040%2C-118.139526?lat=34.189&lng=-118.1395&z=12" target="_blank" rel="noopener" class="source-btn">
+        <img src="https://www.google.com/s2/favicons?domain=protect.genasys.com&sz=32" width="15" height="15" alt="">
+        Genasys
+      </a>
+      <a href="https://www.fire.ca.gov/incidents.html" target="_blank" rel="noopener" class="source-btn">
+        <img src="https://www.google.com/s2/favicons?domain=www.fire.ca.gov&sz=32" width="15" height="15" alt="">
+        Cal Fire
+      </a>
+      <a href="https://egp.wildfire.gov/maps/?lat=34.185692&lon=-118.131512&zoom=14&dimension=2d&regionId=Nation" target="_blank" rel="noopener" class="source-btn">
+        <img src="https://www.google.com/s2/favicons?domain=egp.wildfire.gov&sz=32" width="15" height="15" alt="">
+        WildfireSA
+      </a>
+    </div>
+
   </div>
 
   <footer>
-    Weather data from a meteorological station located around N. Lake Ave. and E. Altadena Drive, with a regional model as backup. Air quality from nearby PurpleAir sensors. Alerts from the National Weather Service. Incident and evacuation data from NIFC and Cal OES.<br><br>
-    Not an official emergency alert system. In an active emergency, follow county and fire department instructions.
+    Not an official emergency alert system. In an active emergency, check on your neighbors and follow the instructions of local and county officials.<br><br>
+    Weather data is pulled from an independently operated meteorological station located around N. Lake Ave. and E. Altadena Drive, with a regional open-source model as a backup. Air quality is derived from nearby PurpleAir sensors along the ridge of the San Gabriel Mountains. Alerts are from the National Weather Service. Incident and evacuation data is from NIFC and Cal OES.
   </footer>
 
 </div>
