@@ -219,22 +219,23 @@
 
 const ALTADENA = { lat: 34.1897, lon: -118.1312 };
 
-// Your Cloudflare Worker — aggregates Ambient Weather + PurpleAir server-side
-// so no API keys are ever exposed to the browser.
+// Your Cloudflare Worker — computes and caches the full status snapshot
+// on a 15-minute schedule (Cron Trigger). The browser only ever reads
+// that pre-computed snapshot, never calls Ambient Weather, PurpleAir,
+// NWS, NIFC, or Cal OES directly. This keeps the page fast and safe
+// to share publicly regardless of visitor volume.
 const WORKER_URL = "https://firewatch-api.timothy-strube.workers.dev/";
-
-// Bounding box roughly covering Altadena + immediate foothills, used for
-// point-in-area queries against NIFC and Cal OES feature services.
-const BBOX = { xmin: -118.21, ymin: 34.14, xmax: -118.07, ymax: 34.26 };
 
 const RISK_THRESHOLDS = { guarded: 15, elevated: 30, high: 50, critical: 70 };
 
 const state = {
-  weatherScore: 0, weatherDetail: "", weatherLevel: "low",
-  nwsScore: 0, nwsDetail: "", nwsLevel: "low",
-  aqScore: 0, aqDetail: "", aqLevel: "low", aqAvailable: false,
-  incidentScore: 0, incidentDetail: "", incidentLevel: "low",
+  weatherScore: 0, weatherLevel: "low",
+  nwsScore: 0, nwsLevel: "low",
+  aqScore: 0, aqLevel: "low",
+  incidentScore: 0, incidentLevel: "low",
 };
+
+let lastUpdated = null;
 
 function levelStyle(level) {
   switch (level) {
@@ -256,6 +257,11 @@ function setBadge(rowId, level, textOverride) {
 
 function setDetail(rowId, text) {
   document.getElementById(rowId + "-detail").textContent = text;
+}
+
+function setUnavailable(rowId) {
+  setDetail(rowId, "Unavailable — see console (F12) for details");
+  setBadge(rowId, "low", "—");
 }
 
 function scoreToLevel(score) {
@@ -282,77 +288,45 @@ function renderHero() {
   document.getElementById("hero-bar").style.width = Math.round(total) + "%";
   document.getElementById("hero-bar").style.background = s.text;
   document.getElementById("hero-level").textContent = s.label + " Risk";
+
+  // Reflects when the Worker last actually refreshed the data (its 15-minute
+  // cron), not the moment this browser tab happened to load the page.
+  const ts = lastUpdated || new Date();
   document.getElementById("hero-updated").textContent =
-    "Updated " + new Date().toLocaleDateString([], { month: "short", day: "numeric" }) +
-    " at " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    "Updated " + ts.toLocaleDateString([], { month: "short", day: "numeric" }) +
+    " at " + ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-/* ---------------- Weather — your Ambient Weather station via Worker,
-   falling back to Open-Meteo (free, no key) if the station is offline ---------------- */
-async function loadWeather() {
-  let gust, humidity, dir, tempF, sourceLabel;
-
-  try {
-    const res = await fetch(WORKER_URL, { cache: "no-store" });
-    const data = await res.json();
-    if (data.weather && data.weather.source === "ambient") {
-      gust = data.weather.gustMph;
-      humidity = data.weather.humidity;
-      dir = data.weather.windDirDeg;
-      tempF = data.weather.tempF;
-      sourceLabel = "your station";
-    }
-  } catch (e) {
-    console.error("Worker weather fetch failed:", e);
+// Fosberg Fire Weather Index (Fosberg, 1978) — the same category of formula
+// NWS/USFS use operationally, combining temperature, humidity, and wind
+// into a single fire-danger number. Typical operational bands run roughly:
+// <15 low, 15-30 moderate, 30-50 high, 50-75 very high, >75 extreme.
+function fosbergIndex(tempF, rh, windMph) {
+  let m; // equilibrium fuel moisture content
+  if (rh < 10) {
+    m = 0.03229 + 0.281073 * rh - 0.000578 * rh * tempF;
+  } else if (rh < 50) {
+    m = 2.22749 + 0.160107 * rh - 0.01478 * tempF;
+  } else {
+    m = 21.0606 + 0.005565 * rh * rh - 0.00035 * rh * tempF - 0.483199 * rh;
   }
+  const mRatio = m / 30;
+  const n = 1 - 2 * mRatio + 1.5 * mRatio * mRatio - 0.5 * mRatio * mRatio * mRatio;
+  return (n * Math.sqrt(1 + windMph * windMph)) / 0.3002;
+}
 
-  if (gust === undefined) {
-    try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${ALTADENA.lat}&longitude=${ALTADENA.lon}` +
-        `&current=wind_speed_10m,wind_gusts_10m,wind_direction_10m,relative_humidity_2m,temperature_2m` +
-        `&wind_speed_unit=mph&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles`;
-      const res = await fetch(url, { cache: "no-store" });
-      const data = await res.json();
-      const c = data.current;
-      gust = Math.round(c.wind_gusts_10m);
-      humidity = Math.round(c.relative_humidity_2m);
-      dir = c.wind_direction_10m;
-      tempF = Math.round(c.temperature_2m);
-      sourceLabel = "regional model";
-    } catch (e) {
-      console.error("Open-Meteo fallback failed:", e);
-    }
-  }
-
-  if (gust === undefined) {
-    setDetail("weather", "Unavailable — see console (F12) for details");
-    setBadge("weather", "low", "—");
-    renderHero();
+function renderWeather(weather) {
+  if (!weather || weather.source === "unavailable") {
+    setUnavailable("weather");
     return;
   }
-  if (tempF === undefined) tempF = 70; // neutral fallback, shouldn't normally trigger
+
+  const { gustMph: gust, humidity, windDirDeg: dir, tempF } = weather;
+  console.log("Weather source this cycle:", weather.source); // "ambient" or "open-meteo"
 
   const compass = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
   const dirLabel = compass[Math.round(dir / 22.5) % 16];
   const santaAna = dir >= 20 && dir <= 100;
-
-  // Fosberg Fire Weather Index (Fosberg, 1978) — the same category of formula
-  // NWS/USFS use operationally, combining temperature, humidity, and wind
-  // into a single fire-danger number. Typical operational bands run roughly:
-  // <15 low, 15-30 moderate, 30-50 high, 50-75 very high, >75 extreme.
-  function fosbergIndex(tempF, rh, windMph) {
-    let m; // equilibrium fuel moisture content
-    if (rh < 10) {
-      m = 0.03229 + 0.281073 * rh - 0.000578 * rh * tempF;
-    } else if (rh < 50) {
-      m = 2.22749 + 0.160107 * rh - 0.01478 * tempF;
-    } else {
-      m = 21.0606 + 0.005565 * rh * rh - 0.00035 * rh * tempF - 0.483199 * rh;
-    }
-    const mRatio = m / 30;
-    const n = 1 - 2 * mRatio + 1.5 * mRatio * mRatio - 0.5 * mRatio * mRatio * mRatio;
-    return (n * Math.sqrt(1 + windMph * windMph)) / 0.3002;
-  }
 
   const ffwi = fosbergIndex(tempF, humidity, gust);
 
@@ -368,126 +342,64 @@ async function loadWeather() {
 
   setDetail("weather", `Gust ${gust} mph · RH ${humidity}% · ${tempF}°F · ${dirLabel}${santaAna ? " (Santa Ana)" : ""}`);
   setBadge("weather", state.weatherLevel, score >= 20 ? "High" : score > 0 ? "Moderate" : "Low");
-  renderHero();
 }
 
-/* ---------------- Red flag warning (NWS — free, no key required) ---------------- */
-async function loadNWS() {
-  try {
-    const url = `https://api.weather.gov/alerts/active?point=${ALTADENA.lat},${ALTADENA.lon}`;
-    const res = await fetch(url, { headers: { "Accept": "application/geo+json" }, cache: "no-store" });
-    const data = await res.json();
-    const events = (data.features || []).map(f => f.properties.event);
-
-    const redFlag = events.includes("Red Flag Warning");
-    const watch = events.includes("Fire Weather Watch");
-
-    if (redFlag) {
-      state.nwsScore = 40; state.nwsLevel = "critical";
-      setDetail("redflag", "Active now");
-      setBadge("redflag", "critical", "Warning");
-    } else if (watch) {
-      state.nwsScore = 15; state.nwsLevel = "elevated";
-      setDetail("redflag", "Fire weather watch active");
-      setBadge("redflag", "elevated", "Watch");
-    } else {
-      state.nwsScore = 0; state.nwsLevel = "low";
-      setDetail("redflag", "No active alerts");
-      setBadge("redflag", "low", "None");
-    }
-  } catch (e) {
-    console.error("NWS alerts fetch failed:", e);
-    setDetail("redflag", "Unavailable — see console (F12) for details");
-    setBadge("redflag", "low", "—");
+function renderRedFlag(redflag) {
+  if (!redflag || redflag.error) {
+    setUnavailable("redflag");
+    return;
   }
-  renderHero();
-}
 
-/* ---------------- Air quality — via Worker (PurpleAir key stays server-side) ---------------- */
-async function loadAirQuality() {
-  try {
-    const res = await fetch(WORKER_URL, { cache: "no-store" });
-    const data = await res.json();
-    if (!data.air || data.air.source !== "purpleair" || data.air.avgPM25 === null) {
-      throw new Error("no readings");
-    }
-    const avgPM = data.air.avgPM25;
-
-    let score = 0;
-    if (avgPM >= 55) score = 30;
-    else if (avgPM >= 35) score = 20;
-    else if (avgPM >= 12) score = 8;
-
-    state.aqScore = score;
-    state.aqAvailable = true;
-    state.aqLevel = score >= 15 ? "elevated" : score > 0 ? "guarded" : "low";
-
-    setDetail("aq", `Avg PM2.5 ${avgPM} µg/m³ · ${data.air.sensorCount} sensor(s)`);
-    setBadge("aq", state.aqLevel, score >= 15 ? "High" : score > 0 ? "Moderate" : "Low");
-  } catch (e) {
-    console.error("Air quality fetch failed:", e);
-    setDetail("aq", "Unavailable — see console (F12) for details");
-    setBadge("aq", "low", "—");
+  if (redflag.active) {
+    state.nwsScore = 40; state.nwsLevel = "critical";
+    setDetail("redflag", "Active now");
+    setBadge("redflag", "critical", "Warning");
+  } else if (redflag.watch) {
+    state.nwsScore = 15; state.nwsLevel = "elevated";
+    setDetail("redflag", "Fire weather watch active");
+    setBadge("redflag", "elevated", "Watch");
+  } else {
+    state.nwsScore = 0; state.nwsLevel = "low";
+    setDetail("redflag", "No active alerts");
+    setBadge("redflag", "low", "None");
   }
-  renderHero();
 }
 
-/* ---------------- Incidents: NIFC current fires + Cal OES evac zones ---------------- */
-async function loadIncidents() {
-  const envelope = `${BBOX.xmin},${BBOX.ymin},${BBOX.xmax},${BBOX.ymax}`;
-  let nifcCount = 0;
-  let evacActive = false;
-  let evacNote = "";
-  let nifcOk = false;
-  let evacOk = false;
+function renderAirQuality(air) {
+  if (!air || air.source !== "purpleair" || air.avgPM25 === null || air.avgPM25 === undefined) {
+    setUnavailable("aq");
+    return;
+  }
 
-  try {
-    const nifcUrl = "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/" +
-      "WFIGS_Incident_Locations_Current/FeatureServer/0/query" +
-      `?where=1%3D1&geometry=${envelope}&geometryType=esriGeometryEnvelope` +
-      "&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=IncidentName&returnGeometry=false&f=json";
-    const nifcRes = await fetch(nifcUrl, { cache: "no-store" });
-    const nifcData = await nifcRes.json();
-    nifcCount = (nifcData.features || []).length;
-    nifcOk = true;
-  } catch (e) { console.error("NIFC fetch failed:", e); }
+  const avgPM = air.avgPM25;
 
-  try {
-    // Cal OES evacuation aggregation layer (Zonehaven/Genasys schema).
-    // Confirmed field name via /0?f=json metadata: STATUS (values: NORMAL,
-    // EVACUATION WARNING, EVACUATION ORDER, SHELTER IN PLACE).
-    const evacUrl = "https://services.arcgis.com/BLN4oKB0N1YSgvY8/arcgis/rest/services/" +
-      "CA_EVACUATIONS_CalOESHosted_view/FeatureServer/0/query" +
-      `?where=1%3D1&geometry=${envelope}&geometryType=esriGeometryEnvelope` +
-      "&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=STATUS,ZONE_NAME,COUNTY&returnGeometry=false&f=json";
-    const evacRes = await fetch(evacUrl, { cache: "no-store" });
-    const evacData = await evacRes.json();
-    const features = evacData.features || [];
-
-    const active = features.filter(f => {
-      const status = (f.attributes || {}).STATUS;
-      return status && String(status).toUpperCase() !== "NORMAL";
-    });
-
-    evacActive = active.length > 0;
-    evacNote = evacActive
-      ? active.map(f => `${f.attributes.ZONE_NAME || "Zone"} (${f.attributes.STATUS})`).slice(0, 2).join(", ")
-      : "";
-    evacOk = true;
-  } catch (e) { console.error("Cal OES evac fetch failed:", e); }
-
+  // EPA AQI breakpoints for PM2.5 (Good / Moderate / Unhealthy for Sensitive Groups).
   let score = 0;
-  let level = "low";
-  let detail;
+  if (avgPM >= 55) score = 30;
+  else if (avgPM >= 35) score = 20;
+  else if (avgPM >= 12) score = 8;
 
-  if (!nifcOk && !evacOk) {
-    detail = "Unavailable — see console (F12) for details";
-  } else if (evacActive) {
+  state.aqScore = score;
+  state.aqLevel = score >= 15 ? "elevated" : score > 0 ? "guarded" : "low";
+
+  setDetail("aq", `Avg PM2.5 ${avgPM} µg/m³ · ${air.sensorCount} sensor(s)`);
+  setBadge("aq", state.aqLevel, score >= 15 ? "High" : score > 0 ? "Moderate" : "Low");
+}
+
+function renderIncidents(incidents) {
+  if (!incidents || (!incidents.nifcOk && !incidents.evacOk)) {
+    setUnavailable("incidents");
+    return;
+  }
+
+  let score = 0, level = "low", detail;
+
+  if (incidents.evacActive) {
     score = 60; level = "critical";
-    detail = evacNote;
-  } else if (nifcCount > 0) {
+    detail = incidents.evacNote;
+  } else if (incidents.nifcCount > 0) {
     score = 20; level = "elevated";
-    detail = `${nifcCount} nearby fire incident(s), no evacuations`;
+    detail = `${incidents.nifcCount} nearby fire incident(s), no evacuations`;
   } else {
     detail = "No active incidents detected";
   }
@@ -496,19 +408,35 @@ async function loadIncidents() {
   state.incidentLevel = level;
   setDetail("incidents", detail);
   setBadge("incidents", level, score >= 50 ? "Critical" : score > 0 ? "Elevated" : "None");
+}
+
+// Single fetch to the Worker, which itself only reads a snapshot from KV —
+// no third-party API is ever called on a visitor's behalf.
+async function loadAll() {
+  try {
+    const res = await fetch(WORKER_URL, { cache: "no-store" });
+    const data = await res.json();
+
+    lastUpdated = data.updated ? new Date(data.updated) : new Date();
+
+    renderWeather(data.weather);
+    renderRedFlag(data.redflag);
+    renderAirQuality(data.air);
+    renderIncidents(data.incidents);
+  } catch (e) {
+    console.error("Status fetch failed:", e);
+    setUnavailable("weather");
+    setUnavailable("redflag");
+    setUnavailable("aq");
+    setUnavailable("incidents");
+  }
   renderHero();
 }
 
-// Kick off all four sources in parallel, then refresh every 10 minutes.
-function loadAll() {
-  loadWeather();
-  loadNWS();
-  loadAirQuality();
-  loadIncidents();
-}
-
 loadAll();
-setInterval(loadAll, 10 * 60 * 1000);
+// The underlying data only changes every 15 minutes (the Worker's cron),
+// so there's no benefit to polling faster than that.
+setInterval(loadAll, 15 * 60 * 1000);
 </script>
 
 </body>
