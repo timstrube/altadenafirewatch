@@ -42,10 +42,4 @@ Composite bands: Low (0–14), Guarded (15–29), Elevated (30–49), High (50�
 
 ## Disclaimer
 
-This is not an official emergency alert system. In an active emergency, follow instructions from Los Angeles County and local fire authorities.
-
-## Setup
-
-1. Deploy `altadena-fire-watch.html` as a static page (see deployment steps).
-2. Set up a Cloudflare Worker with `AMBIENT_API_KEY`, `AMBIENT_APP_KEY`, and `PURPLEAIR_API_KEY` as encrypted secrets.
-3. Update the `WORKER_URL` constant near the top of the page's `<script>` block to point at your deployed Worker.
+This is not an official emergency alert system. In an active emergency, check on your neighbors and follow instructions from local and county authorities.
