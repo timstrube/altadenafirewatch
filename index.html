@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Altadena Ready</title>
+<title>altaready</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960' fill='%233B6D11'%3E%3Cpath d='M420-340h120v-100h100v-120H540v-100H420v100H320v120h100v100Zm60 260q-139-35-229.5-159.5T160-516v-244l320-120 320 120v244q0 152-90.5 276.5T480-80Zm0-84q104-33 172-132t68-220v-189l-240-90-240 90v189q0 121 68 220t172 132Zm0-316Z'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,9 +44,18 @@
 
   header {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 2px;
     margin-bottom: 1.75rem;
+  }
+
+  header .subtitle {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
   }
 
   header .brand {
@@ -55,6 +64,7 @@
     gap: 3px;
     font-size: 20px;
     font-weight: 600;
+    transform: translateX(-3px);
   }
 
   header .brand svg { flex-shrink: 0; }
@@ -111,9 +121,11 @@
     transition: background 0.15s ease, border-color 0.15s ease;
   }
 
-  .source-btn:hover {
-    background: var(--low-bg);
-    border-color: var(--low-text);
+  @media (hover: hover) and (pointer: fine) {
+    .source-btn:hover {
+      background: var(--low-bg);
+      border-color: var(--low-text);
+    }
   }
 
   .source-btn img { border-radius: 3px; }
@@ -172,8 +184,9 @@
       <svg width="30" height="30" viewBox="0 -960 960 960" fill="#3B6D11">
         <path d="M420-340h120v-100h100v-120H540v-100H420v100H320v120h100v100Zm60 260q-139-35-229.5-159.5T160-516v-244l320-120 320 120v244q0 152-90.5 276.5T480-80Zm0-84q104-33 172-132t68-220v-189l-240-90-240 90v189q0 121 68 220t172 132Zm0-316Z"/>
       </svg>
-      <span>Altadena Ready</span>
+      <span>altaready</span>
     </div>
+    <div class="subtitle">A community service</div>
   </header>
 
   <div class="hero" id="hero" style="background: var(--neutral-bg);">
@@ -190,7 +203,7 @@
 
     <div class="row" id="row-weather">
       <div class="left">
-        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+        <svg class="icon" id="weather-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>
         <div>
           <div class="label">Weather</div>
           <div class="detail" id="weather-detail">Fetching…</div>
@@ -201,7 +214,7 @@
 
     <div class="row" id="row-redflag">
       <div class="left">
-        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        <svg class="icon" id="redflag-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
         <div>
           <div class="label">Red Flag Warning</div>
           <div class="detail" id="redflag-detail">Fetching…</div>
@@ -223,7 +236,7 @@
 
     <div class="row" id="row-incidents">
       <div class="left">
-        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <svg class="icon" id="incidents-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <div>
           <div class="label">Confirmed Incidents</div>
           <div class="detail" id="incidents-detail">Fetching…</div>
@@ -311,6 +324,26 @@ function setUnavailable(rowId) {
   setBadge(rowId, "low", "—");
 }
 
+// Recolors a row's background/border and its leading icon to red — reserved
+// for genuinely critical states (active red flag, active evacuation), so it
+// reads as meaningfully different from a routine "High" badge.
+function styleAlertRow(rowId, iconId, level) {
+  const row = document.getElementById(rowId);
+  const icon = document.getElementById(iconId);
+  if (level === "critical") {
+    const s = levelStyle("critical");
+    row.style.background = s.bg;
+    row.style.borderColor = s.text;
+    icon.style.color = s.text;
+    icon.style.opacity = "1";
+  } else {
+    row.style.background = "var(--card)";
+    row.style.borderColor = "var(--border)";
+    icon.style.color = "";
+    icon.style.opacity = "0.65";
+  }
+}
+
 function scoreToLevel(score) {
   if (score >= RISK_THRESHOLDS.critical) return "critical";
   if (score >= RISK_THRESHOLDS.high) return "high";
@@ -364,6 +397,8 @@ function fosbergIndex(tempF, rh, windMph) {
 
 function renderWeather(weather) {
   if (!weather || weather.source === "unavailable") {
+    document.getElementById("weather-icon").style.color = "";
+    document.getElementById("weather-icon").style.opacity = "0.65";
     setUnavailable("weather");
     return;
   }
@@ -385,14 +420,38 @@ function renderWeather(weather) {
   score = Math.round(score);
 
   state.weatherScore = score;
-  state.weatherLevel = score >= 20 ? "elevated" : score > 0 ? "guarded" : "low";
+  state.weatherLevel = score >= 20 ? "high" : score > 0 ? "guarded" : "low";
 
-  setDetail("weather", `Gust ${gust} mph · RH ${humidity}% · ${tempF}°F · ${dirLabel}${santaAna ? " (Santa Ana)" : ""}`);
+  const weatherIcon = document.getElementById("weather-icon");
+  weatherIcon.style.color = santaAna ? "#B3261E" : "";
+  weatherIcon.style.opacity = santaAna ? "1" : "0.65";
+
+  setDetail("weather", `Gust ${gust} mph · RH ${humidity}% · ${tempF}°F · ${dirLabel}`);
   setBadge("weather", state.weatherLevel, score >= 20 ? "High" : score > 0 ? "Moderate" : "Low");
+}
+
+// Swaps the red flag row's icon between its normal outline glyph and a
+// solid filled flag when a warning is actually active.
+function setRedFlagIcon(active) {
+  const icon = document.getElementById("redflag-icon");
+  if (active) {
+    icon.setAttribute("fill", "currentColor");
+    icon.setAttribute("stroke", "none");
+    icon.innerHTML = '<path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/>';
+  } else {
+    icon.setAttribute("fill", "none");
+    icon.setAttribute("stroke", "currentColor");
+    icon.setAttribute("stroke-width", "2");
+    icon.setAttribute("stroke-linecap", "round");
+    icon.setAttribute("stroke-linejoin", "round");
+    icon.innerHTML = '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>';
+  }
 }
 
 function renderRedFlag(redflag) {
   if (!redflag || redflag.error) {
+    setRedFlagIcon(false);
+    styleAlertRow("row-redflag", "redflag-icon", "low");
     setUnavailable("redflag");
     return;
   }
@@ -410,6 +469,8 @@ function renderRedFlag(redflag) {
     setDetail("redflag", "No active alerts");
     setBadge("redflag", "low", "None");
   }
+  setRedFlagIcon(redflag.active === true);
+  styleAlertRow("row-redflag", "redflag-icon", state.nwsLevel);
 }
 
 function renderAirQuality(air) {
@@ -427,7 +488,7 @@ function renderAirQuality(air) {
   else if (avgPM >= 12) score = 8;
 
   state.aqScore = score;
-  state.aqLevel = score >= 15 ? "elevated" : score > 0 ? "guarded" : "low";
+  state.aqLevel = score >= 15 ? "high" : score > 0 ? "guarded" : "low";
 
   setDetail("aq", `Avg PM2.5 ${avgPM} µg/m³ · ${air.sensorCount} sensor(s)`);
   setBadge("aq", state.aqLevel, score >= 15 ? "High" : score > 0 ? "Moderate" : "Low");
@@ -435,6 +496,7 @@ function renderAirQuality(air) {
 
 function renderIncidents(incidents) {
   if (!incidents || (!incidents.nifcOk && !incidents.evacOk)) {
+    styleAlertRow("row-incidents", "incidents-icon", "low");
     setUnavailable("incidents");
     return;
   }
@@ -455,11 +517,66 @@ function renderIncidents(incidents) {
   state.incidentLevel = level;
   setDetail("incidents", detail);
   setBadge("incidents", level, score >= 50 ? "Critical" : score > 0 ? "Elevated" : "None");
+  styleAlertRow("row-incidents", "incidents-icon", level);
 }
+
+// Debug/preview harness — open the file locally with e.g. ?debug=redflag
+// appended to the URL to preview a specific state without needing real
+// conditions or a network connection. Never runs unless the param is present.
+const DEBUG_SCENARIOS = {
+  redflag: {
+    weather: { source: "ambient", gustMph: 18, humidity: 30, windDirDeg: 200, tempF: 82 },
+    air: { source: "purpleair", avgPM25: 9, sensorCount: 3 },
+    redflag: { active: true, watch: false },
+    incidents: { nifcOk: true, evacOk: true, evacActive: false, nifcCount: 0 },
+    updated: new Date().toISOString(),
+  },
+  watch: {
+    weather: { source: "ambient", gustMph: 15, humidity: 25, windDirDeg: 70, tempF: 80 },
+    air: { source: "purpleair", avgPM25: 9, sensorCount: 3 },
+    redflag: { active: false, watch: true },
+    incidents: { nifcOk: true, evacOk: true, evacActive: false, nifcCount: 0 },
+    updated: new Date().toISOString(),
+  },
+  santaana: {
+    weather: { source: "ambient", gustMph: 45, humidity: 8, windDirDeg: 60, tempF: 95 },
+    air: { source: "purpleair", avgPM25: 15, sensorCount: 3 },
+    redflag: { active: false, watch: false },
+    incidents: { nifcOk: true, evacOk: true, evacActive: false, nifcCount: 0 },
+    updated: new Date().toISOString(),
+  },
+  critical: {
+    weather: { source: "ambient", gustMph: 55, humidity: 6, windDirDeg: 70, tempF: 100 },
+    air: { source: "purpleair", avgPM25: 80, sensorCount: 3 },
+    redflag: { active: true, watch: false },
+    incidents: { nifcOk: true, evacOk: true, evacActive: true, evacNote: "Zone A-12 (EVACUATION ORDER)", nifcCount: 2 },
+    updated: new Date().toISOString(),
+  },
+  clear: {
+    weather: { source: "ambient", gustMph: 4, humidity: 55, windDirDeg: 270, tempF: 68 },
+    air: { source: "purpleair", avgPM25: 5, sensorCount: 3 },
+    redflag: { active: false, watch: false },
+    incidents: { nifcOk: true, evacOk: true, evacActive: false, nifcCount: 0 },
+    updated: new Date().toISOString(),
+  },
+};
 
 // Single fetch to the Worker, which itself only reads a snapshot from KV —
 // no third-party API is ever called on a visitor's behalf.
 async function loadAll() {
+  const debugParam = new URLSearchParams(location.search).get("debug");
+  if (debugParam && DEBUG_SCENARIOS[debugParam]) {
+    console.log("DEBUG MODE — previewing scenario:", debugParam);
+    const data = DEBUG_SCENARIOS[debugParam];
+    lastUpdated = new Date(data.updated);
+    renderWeather(data.weather);
+    renderRedFlag(data.redflag);
+    renderAirQuality(data.air);
+    renderIncidents(data.incidents);
+    renderHero();
+    return;
+  }
+
   try {
     const res = await fetch(WORKER_URL, { cache: "no-store" });
     const data = await res.json();
