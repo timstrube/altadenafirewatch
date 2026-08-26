@@ -1,10 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>altaready</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960' fill='%233B6D11'%3E%3Cpath d='M420-340h120v-100h100v-120H540v-100H420v100H320v120h100v100Zm60 260q-139-35-229.5-159.5T160-516v-244l320-120 320 120v244q0 152-90.5 276.5T480-80Zm0-84q104-33 172-132t68-220v-189l-240-90-240 90v189q0 121 68 220t172 132Zm0-316Z'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 388.93 486.17' fill='%233B6D11'%3E%3Cpath d='M194.47,486.17c-56.31-14.18-102.8-46.49-139.47-96.93C18.33,338.8,0,282.79,0,221.21V72.93L194.47,0l194.47,72.93v148.28c0,61.58-18.33,117.59-55,168.03-36.67,50.44-83.15,82.75-139.47,96.93ZM194.47,51.66L48.62,106.35v114.86c0,15.42,1.36,30.39,4.09,44.93l45.84-61.12,151.27,201.81c18.39-13.66,34.78-30.96,49.18-51.93,9.49-13.82,17.35-28.17,23.57-43.05l-89.73-119.79-58.15,77.34-24.09-31.47,82.24-109.66,103.39,137.86c2.72-14.54,4.09-29.51,4.09-44.93v-114.86l-145.85-54.69ZM98.54,268.81l-32.18,43.04c6.22,14.88,14.08,29.24,23.57,43.06,27.55,40.11,62.39,66.85,104.53,80.22,7.53-2.39,14.82-5.21,21.89-8.46l-117.81-157.86Z'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -47,12 +48,12 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
+    gap: 3px;
     margin-bottom: 1.75rem;
   }
 
   header .subtitle {
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 500;
     color: var(--text-muted);
     letter-spacing: 0.02em;
@@ -61,10 +62,10 @@
   header .brand {
     display: flex;
     align-items: center;
-    gap: 3px;
-    font-size: 20px;
+    gap: 8px;
+    font-size: 25px;
     font-weight: 600;
-    transform: translateX(-3px);
+    transform: translateX(-4px);
   }
 
   header .brand svg { flex-shrink: 0; }
@@ -181,8 +182,8 @@
 
   <header>
     <div class="brand">
-      <svg width="30" height="30" viewBox="0 -960 960 960" fill="#3B6D11">
-        <path d="M420-340h120v-100h100v-120H540v-100H420v100H320v120h100v100Zm60 260q-139-35-229.5-159.5T160-516v-244l320-120 320 120v244q0 152-90.5 276.5T480-80Zm0-84q104-33 172-132t68-220v-189l-240-90-240 90v189q0 121 68 220t172 132Zm0-316Z"/>
+      <svg width="30" height="40" viewBox="0 0 388.93 486.17" fill="#3B6D11">
+        <path d="M194.47,486.17c-56.31-14.18-102.8-46.49-139.47-96.93C18.33,338.8,0,282.79,0,221.21V72.93L194.47,0l194.47,72.93v148.28c0,61.58-18.33,117.59-55,168.03-36.67,50.44-83.15,82.75-139.47,96.93ZM194.47,51.66L48.62,106.35v114.86c0,15.42,1.36,30.39,4.09,44.93l45.84-61.12,151.27,201.81c18.39-13.66,34.78-30.96,49.18-51.93,9.49-13.82,17.35-28.17,23.57-43.05l-89.73-119.79-58.15,77.34-24.09-31.47,82.24-109.66,103.39,137.86c2.72-14.54,4.09-29.51,4.09-44.93v-114.86l-145.85-54.69ZM98.54,268.81l-32.18,43.04c6.22,14.88,14.08,29.24,23.57,43.06,27.55,40.11,62.39,66.85,104.53,80.22,7.53-2.39,14.82-5.21,21.89-8.46l-117.81-157.86Z"/>
       </svg>
       <span>altaready</span>
     </div>
@@ -212,17 +213,6 @@
       <div class="badge" id="weather-badge" style="background: var(--neutral-bg); color: var(--neutral-text);">—</div>
     </div>
 
-    <div class="row" id="row-redflag">
-      <div class="left">
-        <svg class="icon" id="redflag-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-        <div>
-          <div class="label">Red Flag Warning</div>
-          <div class="detail" id="redflag-detail">Fetching…</div>
-        </div>
-      </div>
-      <div class="badge" id="redflag-badge" style="background: var(--neutral-bg); color: var(--neutral-text);">—</div>
-    </div>
-
     <div class="row" id="row-aq">
       <div class="left">
         <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/></svg>
@@ -232,6 +222,17 @@
         </div>
       </div>
       <div class="badge" id="aq-badge" style="background: var(--neutral-bg); color: var(--neutral-text);">—</div>
+    </div>
+
+    <div class="row" id="row-redflag">
+      <div class="left">
+        <svg class="icon" id="redflag-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        <div>
+          <div class="label">Red Flag Warning</div>
+          <div class="detail" id="redflag-detail">Fetching…</div>
+        </div>
+      </div>
+      <div class="badge" id="redflag-badge" style="background: var(--neutral-bg); color: var(--neutral-text);">—</div>
     </div>
 
     <div class="row" id="row-incidents">
@@ -263,8 +264,7 @@
   </div>
 
   <footer>
-    Not an official emergency alert system. In an active emergency, check on your neighbors and follow the instructions of local and county officials.<br><br>
-    Weather data is pulled from an independently operated meteorological station located around N. Lake Ave. and E. Altadena Drive, with a regional open-source model as a backup. Air quality is derived from nearby PurpleAir sensors along the ridge of the San Gabriel Mountains. Alerts are from the National Weather Service. Incident and evacuation data is from NIFC and Cal OES.
+    Not an official emergency alert system. In an active emergency, check on your neighbors and follow the instructions of local and county officials. <a href="https://github.com/timstrube/altadenafirewatch" target="_blank" rel="noopener" style="color: var(--text-secondary); text-decoration: underline;">Click or tap here</a> for more info.
   </footer>
 
 </div>
@@ -458,7 +458,7 @@ function renderRedFlag(redflag) {
 
   if (redflag.active) {
     state.nwsScore = 40; state.nwsLevel = "critical";
-    setDetail("redflag", "Active now");
+    setDetail("redflag", redflag.nearby ? "Active in nearby San Gabriel Mountains" : "Active now");
     setBadge("redflag", "critical", "Warning");
   } else if (redflag.watch) {
     state.nwsScore = 15; state.nwsLevel = "elevated";
@@ -603,5 +603,6 @@ loadAll();
 setInterval(loadAll, 15 * 60 * 1000);
 </script>
 
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"c0ae39b33b9b415a91b831ad7d70977e","r":1}' crossorigin="anonymous"></script>
 </body>
 </html>
