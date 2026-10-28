@@ -605,7 +605,11 @@ function renderHero() {
     return renderHeroGrey("Data incomplete", updatedText);
   }
 
-  const total = Math.max(0, Math.min(100, SOURCES.reduce((sum, [key]) => sum + (state[key] ?? 0), 0)));
+  let total = Math.max(0, Math.min(100, SOURCES.reduce((sum, [key]) => sum + (state[key] ?? 0), 0)));
+  // Official alerts set a minimum, so calm weather can never water them down:
+  // an active evacuation is always Critical, an active Red Flag Warning at least High.
+  if (state.incidentLevel === "critical") total = Math.max(total, RISK_THRESHOLDS.critical);
+  if (state.nwsLevel === "critical") total = Math.max(total, RISK_THRESHOLDS.high);
   const level = scoreToLevel(total);
   const s = levelStyle(level);
   const hero = document.getElementById("hero");

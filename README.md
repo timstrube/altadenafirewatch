@@ -38,6 +38,8 @@ Four sub-scores are added together into a 0–100 total:
 
 Risk levels: **Low** 0–14 · **Guarded** 15–29 · **Elevated** 30–49 · **High** 50–69 · **Critical** 70–100.
 
+Official alerts also set a minimum, so calm weather can never water them down: an **active evacuation warning or order is always Critical** (at least 70), and an **active Red Flag Warning is always at least High** (at least 50).
+
 The NWS check queries two points, Altadena itself and the Angeles National Forest foothills (`34.2130, -118.0970`), because Altadena's own forecast zone rarely receives a Red Flag Warning even when the mountains directly above it do.
 
 ## When data is missing
@@ -48,6 +50,8 @@ The page never shows a failure as an all-clear:
 - **Red flag or incident/evacuation source missing:** grey "Data incomplete", because either one could be an active alert.
 - **Only weather or air quality missing:** the score still shows, marked "Incomplete".
 - **An alert seen earlier stays visible** ("Last known: Red Flag Warning, as of …") until fresh data says it has ended.
+
+The backend follows the same rule: a source that errors, times out, or answers with an error message is reported as failed, never as "nothing to report".
 
 ## Repository layout
 
@@ -66,7 +70,10 @@ The page never shows a failure as an all-clear:
 
 ## Testing
 
-Run `node tests/fail-states.mjs` from the repo folder before pushing changes to `index.html`. It needs only Node and Google Chrome.
+Run these from the repo folder before pushing. Both need only Node 22+; the page test also needs Google Chrome.
+
+- `node tests/fail-states.mjs`: every normal and failure state of the page
+- `node worker/test/feeds.mjs`: the backend, fed simulated errors from every data source
 
 To preview a state by hand, add a debug parameter to the address, e.g. `altaready.info/?debug=critical`:
 

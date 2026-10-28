@@ -145,6 +145,22 @@ try {
     });
   }
 
+  // ---- Official alerts set a minimum risk level, even on a calm day ----
+  await check("red flag on an otherwise calm day: at least High", async () => {
+    const r = await load("", respondWith(snapshot({ redflag: { active: true } })));
+    assert.equal(r.level, "High Risk"); assert.equal(r.score, "50");
+    passesAA(r, "calm red flag"); noException(r, "calm red flag");
+  });
+  await check("evacuation on an otherwise calm day: Critical", async () => {
+    const r = await load("", respondWith(snapshot({ incidents: { nifcOk: true, evacOk: true, nifcCount: 0, evacActive: true, evacNote: "Zone B-3 (EVACUATION WARNING)" } })));
+    assert.equal(r.level, "Critical Risk"); assert.equal(r.score, "70");
+    passesAA(r, "calm evacuation"); noException(r, "calm evacuation");
+  });
+  await check("fire weather watch alone sets no minimum", async () => {
+    const r = await load("", respondWith(snapshot({ redflag: { active: false, watch: true } })));
+    assert.equal(r.level, "Guarded Risk");
+  });
+
   // ---- Worker failures ----
   await check("debug=offline: grey, no green anywhere", async () => {
     const r = await load("?debug=offline");
@@ -228,7 +244,7 @@ try {
       snapshot({ incidents: { nifcOk: true, evacOk: false, evacActive: false, nifcCount: 1 } }),
       snapshot({ incidents: { nifcOk: true, evacOk: true, evacActive: false, nifcCount: 0 } }),
     ]));
-    assert.equal(r.level, "High Risk"); // calm weather 3 + evacuation 60 = 63
+    assert.equal(r.level, "Critical Risk"); // calm weather 3 + evacuation 60 = 63, raised to the evacuation minimum of 70
 
     r = await refresh();
     grey(r, "evac feed down"); assert.equal(r.level, "Data incomplete");
@@ -269,7 +285,7 @@ try {
       snapshot({ redflag: { error: "x" } }),
       snapshot(),
     ]));
-    assert.equal(r.level, "Elevated Risk"); // calm weather 3 + red flag 40 = 43
+    assert.equal(r.level, "High Risk"); // calm weather 3 + red flag 40 = 43, raised to the red flag minimum of 50
 
     r = await refresh();
     grey(r, "worker down"); assert.equal(r.level, "Data unavailable"); assert.match(r.updated, /^Last updated /);
