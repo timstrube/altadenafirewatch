@@ -47,14 +47,40 @@ async function computeStatus(env) {
   return { weather, air, redflag, incidents, updated: new Date().toISOString() };
 }
 
+/* ---------------- Safe fetching ----------------
+   A source that errors, times out, or answers with an error message must
+   count as FAILED, never as "nothing to report". Several of these services
+   (notably the ArcGIS feeds) send errors back as a normal-looking 200
+   response, so the content is checked too, not just the HTTP status. */
+const FETCH_TIMEOUT_MS = 15000;
+
+async function getJson(url, init = {}) {
+  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+  if (!res.ok) throw new Error(`HTTP ${res.status} from ${new URL(url).host}`);
+  return res.json();
+}
+
+// ArcGIS query: returns the features array, or throws if the service reported an error.
+async function getArcgisFeatures(url) {
+  const data = await getJson(url);
+  if (!data || data.error || !Array.isArray(data.features)) {
+    throw new Error(`ArcGIS error from ${new URL(url).host}: ${JSON.stringify(data && data.error || "no features array")}`);
+  }
+  return data.features;
+}
+
+const isNum = v => typeof v === "number" && Number.isFinite(v);
+
 /* ---------------- Weather: your Ambient Weather station first,
    Open-Meteo pinned to ZIP 91001 (Altadena) as fallback ---------------- */
 async function getWeather(env) {
   try {
     const url = `https://api.ambientweather.net/v1/devices?apiKey=${env.AMBIENT_API_KEY}&applicationKey=${env.AMBIENT_APP_KEY}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const last = data[0].lastData;
+    const data = await getJson(url);
+    const last = Array.isArray(data) && data[0] && data[0].lastData;
+    if (!last || ![last.windgustmph, last.windspeedmph, last.humidity, last.tempf].every(isNum)) {
+      throw new Error("station returned no usable readings");
+    }
     return {
       source: "ambient",
       gustMph: Math.round(last.windgustmph),
@@ -72,9 +98,11 @@ async function getWeather(env) {
     const url = "https://api.open-meteo.com/v1/forecast?latitude=34.196307&longitude=-118.135582" +
       "&current=wind_speed_10m,wind_gusts_10m,wind_direction_10m,relative_humidity_2m,temperature_2m" +
       "&wind_speed_unit=mph&temperature_unit=fahrenheit&timezone=America%2FLos_Angeles";
-    const res = await fetch(url);
-    const data = await res.json();
-    const c = data.current;
+    const data = await getJson(url);
+    const c = data && data.current;
+    if (!c || ![c.wind_gusts_10m, c.wind_speed_10m, c.relative_humidity_2m, c.temperature_2m].every(isNum)) {
+      throw new Error("Open-Meteo returned no usable readings");
+    }
     return {
       source: "open-meteo",
       gustMph: Math.round(c.wind_gusts_10m),
@@ -84,6 +112,7 @@ async function getWeather(env) {
       tempF: Math.round(c.temperature_2m),
     };
   } catch (e) {
+    console.log("Open-Meteo failed:", e.message);
     return { source: "unavailable" };
   }
 }
@@ -96,14 +125,14 @@ async function getAirQuality(env) {
   try {
     const ids = SENSOR_IDS.join(",");
     const url = `https://api.purpleair.com/v1/sensors?show_only=${ids}&fields=pm2.5_10minute`;
-    const res = await fetch(url, { headers: { "X-API-Key": env.PURPLEAIR_API_KEY } });
-    const data = await res.json();
-    const readings = (data.data || []).map(r => r[1]).filter(v => typeof v === "number");
-    const avgPM = readings.length
-      ? Math.round((readings.reduce((a, b) => a + b, 0) / readings.length) * 10) / 10
-      : null;
+    const data = await getJson(url, { headers: { "X-API-Key": env.PURPLEAIR_API_KEY } });
+    if (!data || data.error || !Array.isArray(data.data)) throw new Error(`PurpleAir error: ${data && data.error}`);
+    const readings = data.data.map(r => r[1]).filter(isNum);
+    if (readings.length === 0) throw new Error("no sensor readings");
+    const avgPM = Math.round((readings.reduce((a, b) => a + b, 0) / readings.length) * 10) / 10;
     return { source: "purpleair", avgPM25: avgPM, sensorCount: readings.length };
   } catch (e) {
+    console.log("PurpleAir failed:", e.message);
     return { source: "unavailable" };
   }
 }
@@ -123,15 +152,16 @@ async function getRedFlag() {
   try {
     for (const p of REDFLAG_POINTS) {
       const url = `https://api.weather.gov/alerts/active?point=${p.lat},${p.lon}`;
-      const res = await fetch(url, {
+      const data = await getJson(url, {
         headers: {
           "Accept": "application/geo+json",
           // NWS asks for an identifying User-Agent with a contact (a website is accepted).
           "User-Agent": "altaready.info (https://altaready.info)",
         },
       });
-      const data = await res.json();
-      const events = (data.features || []).map(f => f.properties.event);
+      // Both points must answer properly; one failed point means the alert state is unknown.
+      if (!data || !Array.isArray(data.features)) throw new Error(`NWS returned no alert list for ${p.label}`);
+      const events = data.features.map(f => f && f.properties && f.properties.event);
 
       if (events.includes("Red Flag Warning")) {
         active = true;
@@ -143,6 +173,7 @@ async function getRedFlag() {
     }
     return { active, watch, nearby };
   } catch (e) {
+    console.log("NWS failed:", e.message);
     return { active: false, watch: false, nearby: false, error: true };
   }
 }
@@ -158,9 +189,8 @@ async function getIncidents() {
       "WFIGS_Incident_Locations_Current/FeatureServer/0/query" +
       `?where=1%3D1&geometry=${envelope}&geometryType=esriGeometryEnvelope` +
       "&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=IncidentName&returnGeometry=false&f=json";
-    const res = await fetch(url);
-    const data = await res.json();
-    nifcCount = (data.features || []).length;
+    const features = await getArcgisFeatures(url);
+    nifcCount = features.length;
     nifcOk = true;
   } catch (e) { console.log("NIFC fetch failed:", e.message); }
 
@@ -169,9 +199,7 @@ async function getIncidents() {
       "CA_EVACUATIONS_CalOESHosted_view/FeatureServer/0/query" +
       `?where=1%3D1&geometry=${envelope}&geometryType=esriGeometryEnvelope` +
       "&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=STATUS,ZONE_NAME,COUNTY&returnGeometry=false&f=json";
-    const res = await fetch(url);
-    const data = await res.json();
-    const features = data.features || [];
+    const features = await getArcgisFeatures(url);
     const active = features.filter(f => {
       const status = (f.attributes || {}).STATUS;
       return status && String(status).toUpperCase() !== "NORMAL";
