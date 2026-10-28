@@ -96,7 +96,6 @@
 
   .hero .updated {
     font-size: 13px;
-    opacity: 0.75;
   }
 
   .rows { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.25rem; }
@@ -171,6 +170,22 @@
     margin-top: 2px;
   }
 
+  /* Grey and incomplete hero states: no fading, so the text passes AA contrast. */
+  .hero.is-degraded .eyebrow { opacity: 1; }
+
+  /* Last-known / still-active alerts inside the grey hero. */
+  .hero-alert div {
+    display: inline-block;
+    margin: 2px 0 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--crit-text);
+    border-radius: 12px;
+    background: var(--crit-bg);
+    color: var(--crit-text);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .hero { transition: none; }
   }
@@ -197,6 +212,7 @@
       <div id="hero-bar" style="height: 100%; width: 0%; border-radius: 20px; background: var(--neutral-text); transition: width 0.4s ease, background 0.4s ease;"></div>
     </div>
     <div class="level" id="hero-level" style="color: var(--neutral-text); font-size:20px; margin-bottom:6px;">Loading…</div>
+    <div class="hero-alert" id="hero-alert"></div>
     <div class="updated" id="hero-updated" style="color: var(--neutral-text);">&nbsp;</div>
   </div>
 
@@ -288,6 +304,10 @@ const WORKER_URL = "https://firewatch-api.timothy-strube.workers.dev/";
 
 const RISK_THRESHOLDS = { guarded: 15, elevated: 30, high: 50, critical: 70 };
 
+// A snapshot older than this (three missed 15-minute Worker cycles) is
+// treated the same as no data at all.
+const STALE_AFTER_MS = 45 * 60 * 1000;
+
 const state = {
   weatherScore: 0, weatherLevel: "low",
   nwsScore: 0, nwsLevel: "low",
@@ -321,7 +341,11 @@ function setDetail(rowId, text) {
 
 function setUnavailable(rowId) {
   setDetail(rowId, "Unavailable — see console (F12) for details");
-  setBadge(rowId, "low", "—");
+  // Neutral grey, not "low" green: missing data must never look like an all-clear.
+  const el = document.getElementById(rowId + "-badge");
+  el.style.background = "var(--neutral-bg)";
+  el.style.color = "var(--neutral-text)";
+  el.textContent = "—";
 }
 
 // Recolors a row's background/border and its leading icon to red — reserved
@@ -352,13 +376,94 @@ function scoreToLevel(score) {
   return "low";
 }
 
+function formatTime(ts) {
+  return ts.toLocaleDateString([], { month: "short", day: "numeric" }) +
+    " at " + ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+// Alerts from the newest snapshot seen in this tab, so a failed refresh
+// can never make an active red flag or evacuation silently disappear.
+const lastKnown = { redflag: null, evac: null };
+
+function rememberAlerts(data, at) {
+  // Same "is this source usable" tests the render functions apply.
+  if (data.redflag && !data.redflag.error && !(lastKnown.redflag && at < lastKnown.redflag.at))
+    lastKnown.redflag = { active: data.redflag.active === true, at };
+  const inc = data.incidents;
+  if (inc && (inc.nifcOk || inc.evacOk) && !(lastKnown.evac && at < lastKnown.evac.at))
+    lastKnown.evac = { active: inc.evacActive === true, note: inc.evacNote, at };
+}
+
+// "Active now: …" if the alert's source reported this cycle, otherwise "Last known: … (as of …)".
+function alertLines() {
+  const lines = [];
+  const add = (reportingNow, known, label) => {
+    if (!known || !known.active) return;
+    lines.push(reportingNow ? "Active now: " + label : `Last known: ${label} (as of ${formatTime(known.at)})`);
+  };
+  add(state.nwsScore !== null, lastKnown.redflag, "Red Flag Warning");
+  add(state.incidentScore !== null, lastKnown.evac,
+    lastKnown.evac && lastKnown.evac.note ? "Evacuation — " + lastKnown.evac.note : "Evacuation");
+  return lines;
+}
+
+function setHeroAlerts(lines) {
+  document.getElementById("hero-alert").replaceChildren(...lines.map(text => {
+    const line = document.createElement("div");
+    line.textContent = text;
+    return line;
+  }));
+}
+
+// Neutral grey, no score, no risk level — any known alert is still shown.
+function renderHeroGrey(levelText, updatedText) {
+  const hero = document.getElementById("hero");
+  hero.style.background = "var(--neutral-bg)";
+  hero.classList.add("is-degraded");
+  ["hero-eyebrow", "hero-level", "hero-score", "hero-updated"].forEach(id =>
+    document.getElementById(id).style.color = "var(--neutral-text)");
+  document.getElementById("hero-score").textContent = "—";
+  document.getElementById("hero-bar").style.width = "0%";
+  document.getElementById("hero-level").textContent = levelText;
+  setHeroAlerts(alertLines());
+  document.getElementById("hero-updated").textContent = updatedText;
+}
+
+// Worker down or data stale.
+function renderHeroUnavailable() {
+  renderHeroGrey("Data unavailable", lastUpdated
+    ? "Last updated " + formatTime(lastUpdated)
+    : "No successful update yet");
+}
+
+const SOURCES = [
+  ["weatherScore", "Weather"], ["nwsScore", "Red Flag Warning"],
+  ["aqScore", "Air Quality"], ["incidentScore", "Confirmed Incidents"],
+];
+
 function renderHero() {
-  const total = Math.max(0, Math.min(100,
-    state.weatherScore + state.nwsScore + state.aqScore + state.incidentScore
-  ));
+  // A source that failed has a null sub-score: leave it out and say the total is incomplete.
+  const missing = SOURCES.filter(([key]) => state[key] === null).map(([, name]) => name);
+  if (missing.length === SOURCES.length) return renderHeroUnavailable();
+
+  // Reflects when the Worker last actually refreshed the data (its 15-minute
+  // cron), not the moment this browser tab happened to load the page.
+  const ts = lastUpdated || new Date();
+  const updatedText = (missing.length ? `Incomplete: ${missing.join(", ")} unavailable · ` : "") +
+    "Updated " + formatTime(ts);
+
+  // Red flag and evacuation can each override the score on their own, so
+  // without either one there is no honest total to show.
+  if (state.nwsScore === null || state.incidentScore === null) {
+    return renderHeroGrey("Data incomplete", updatedText);
+  }
+
+  const total = Math.max(0, Math.min(100, SOURCES.reduce((sum, [key]) => sum + (state[key] ?? 0), 0)));
   const level = scoreToLevel(total);
   const s = levelStyle(level);
   const hero = document.getElementById("hero");
+  hero.classList.toggle("is-degraded", missing.length > 0);
+  setHeroAlerts([]);
   hero.style.background = s.bg;
   document.getElementById("hero-eyebrow").style.color = s.fg;
   document.getElementById("hero-level").style.color = s.fg;
@@ -368,13 +473,7 @@ function renderHero() {
   document.getElementById("hero-bar").style.width = Math.round(total) + "%";
   document.getElementById("hero-bar").style.background = s.text;
   document.getElementById("hero-level").textContent = s.label + " Risk";
-
-  // Reflects when the Worker last actually refreshed the data (its 15-minute
-  // cron), not the moment this browser tab happened to load the page.
-  const ts = lastUpdated || new Date();
-  document.getElementById("hero-updated").textContent =
-    "Updated " + ts.toLocaleDateString([], { month: "short", day: "numeric" }) +
-    " at " + ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  document.getElementById("hero-updated").textContent = updatedText;
 }
 
 // Fosberg Fire Weather Index (Fosberg, 1978) — the same category of formula
@@ -399,6 +498,7 @@ function renderWeather(weather) {
   if (!weather || weather.source === "unavailable") {
     document.getElementById("weather-icon").style.color = "";
     document.getElementById("weather-icon").style.opacity = "0.65";
+    state.weatherScore = null;
     setUnavailable("weather");
     return;
   }
@@ -452,6 +552,7 @@ function renderRedFlag(redflag) {
   if (!redflag || redflag.error) {
     setRedFlagIcon(false);
     styleAlertRow("row-redflag", "redflag-icon", "low");
+    state.nwsScore = null;
     setUnavailable("redflag");
     return;
   }
@@ -475,6 +576,7 @@ function renderRedFlag(redflag) {
 
 function renderAirQuality(air) {
   if (!air || air.source !== "purpleair" || air.avgPM25 === null || air.avgPM25 === undefined) {
+    state.aqScore = null;
     setUnavailable("aq");
     return;
   }
@@ -497,6 +599,7 @@ function renderAirQuality(air) {
 function renderIncidents(incidents) {
   if (!incidents || (!incidents.nifcOk && !incidents.evacOk)) {
     styleAlertRow("row-incidents", "incidents-icon", "low");
+    state.incidentScore = null;
     setUnavailable("incidents");
     return;
   }
@@ -559,42 +662,73 @@ const DEBUG_SCENARIOS = {
     incidents: { nifcOk: true, evacOk: true, evacActive: false, nifcCount: 0 },
     updated: new Date().toISOString(),
   },
+  // Worker unreachable: goes through the same failure path as a real outage.
+  offline: { offline: true },
+  // NWS red flag source failed: grey "Data incomplete", no risk level.
+  partial: {
+    weather: { source: "ambient", gustMph: 15, humidity: 25, windDirDeg: 70, tempF: 80 },
+    air: { source: "purpleair", avgPM25: 9, sensorCount: 3 },
+    redflag: { error: "Simulated NWS failure" },
+    incidents: { nifcOk: true, evacOk: true, evacActive: false, nifcCount: 0 },
+    updated: new Date().toISOString(),
+  },
+  // Only air quality failed: coloured score stays, marked incomplete.
+  "partial-aq": {
+    weather: { source: "ambient", gustMph: 15, humidity: 25, windDirDeg: 70, tempF: 80 },
+    air: { source: "unavailable" },
+    redflag: { active: false, watch: false },
+    incidents: { nifcOk: true, evacOk: true, evacActive: false, nifcCount: 0 },
+    updated: new Date().toISOString(),
+  },
+  // Worker returned a two-hour-old snapshot that had an active red flag and
+  // evacuation: grey "Data unavailable" that still shows both as last known.
+  stale: {
+    weather: { source: "ambient", gustMph: 45, humidity: 8, windDirDeg: 60, tempF: 95 },
+    air: { source: "purpleair", avgPM25: 40, sensorCount: 3 },
+    redflag: { active: true, watch: false },
+    incidents: { nifcOk: true, evacOk: true, evacActive: true, evacNote: "Zone A-12 (EVACUATION ORDER)", nifcCount: 1 },
+    updated: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  },
 };
 
 // Single fetch to the Worker, which itself only reads a snapshot from KV —
 // no third-party API is ever called on a visitor's behalf.
 async function loadAll() {
   const debugParam = new URLSearchParams(location.search).get("debug");
-  if (debugParam && DEBUG_SCENARIOS[debugParam]) {
-    console.log("DEBUG MODE — previewing scenario:", debugParam);
-    const data = DEBUG_SCENARIOS[debugParam];
-    lastUpdated = new Date(data.updated);
+
+  try {
+    let data;
+    if (debugParam && DEBUG_SCENARIOS[debugParam]) {
+      console.log("DEBUG MODE — previewing scenario:", debugParam);
+      data = DEBUG_SCENARIOS[debugParam];
+      if (data.offline) throw new Error("Simulated Worker failure (debug=offline)");
+    } else {
+      const res = await fetch(WORKER_URL, { cache: "no-store" });
+      if (!res.ok) throw new Error("Worker responded " + res.status);
+      data = await res.json();
+    }
+
+    // Only trust a snapshot that says when it was made, and only if that was recently.
+    const updated = new Date(data.updated);
+    if (!data.updated || isNaN(updated)) throw new Error("Snapshot has no valid timestamp");
+    if (!lastUpdated || updated > lastUpdated) lastUpdated = updated;
+    rememberAlerts(data, updated);
+    if (Date.now() - updated > STALE_AFTER_MS) throw new Error("Snapshot is stale, from " + updated.toISOString());
+
     renderWeather(data.weather);
     renderRedFlag(data.redflag);
     renderAirQuality(data.air);
     renderIncidents(data.incidents);
     renderHero();
-    return;
-  }
-
-  try {
-    const res = await fetch(WORKER_URL, { cache: "no-store" });
-    const data = await res.json();
-
-    lastUpdated = data.updated ? new Date(data.updated) : new Date();
-
-    renderWeather(data.weather);
-    renderRedFlag(data.redflag);
-    renderAirQuality(data.air);
-    renderIncidents(data.incidents);
   } catch (e) {
     console.error("Status fetch failed:", e);
-    setUnavailable("weather");
-    setUnavailable("redflag");
-    setUnavailable("aq");
-    setUnavailable("incidents");
+    // Each render function resets its row (and its sub-score) when handed nothing.
+    renderWeather(null);
+    renderRedFlag(null);
+    renderAirQuality(null);
+    renderIncidents(null);
+    renderHeroUnavailable();
   }
-  renderHero();
 }
 
 loadAll();
