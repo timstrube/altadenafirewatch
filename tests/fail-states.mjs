@@ -47,10 +47,12 @@ try {
   ws = new WebSocket(ver.webSocketDebuggerUrl);
   await new Promise((ok, fail) => { ws.onopen = ok; ws.onerror = fail; });
   let id = 0;
-  const pending = new Map(), events = [];
+  const pending = new Map(), events = [], requests = []; // requests: every URL the page asked for, whole run
   ws.onmessage = m => {
     const d = JSON.parse(m.data);
-    if (d.id && pending.has(d.id)) { pending.get(d.id)(d); pending.delete(d.id); } else events.push(d);
+    if (d.id && pending.has(d.id)) { pending.get(d.id)(d); pending.delete(d.id); return; }
+    events.push(d);
+    if (d.method === "Network.requestWillBeSent") requests.push(d.params.request.url);
   };
   const send = (method, params = {}, sessionId) =>
     new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params, sessionId })); });
@@ -59,6 +61,7 @@ try {
   const cdp = (m, p) => send(m, p, sessionId);
   await cdp("Page.enable");
   await cdp("Runtime.enable");
+  await cdp("Network.enable");
   await cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   const evaluate = async expression =>
     (await cdp("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true })).result?.result?.value;
@@ -84,6 +87,8 @@ try {
       incidents: { detail: g("incidents-detail").textContent, badge: g("incidents-badge").textContent,
                    badgeBg: g("incidents-badge").style.background, rowBg: g("row-incidents").style.background },
       alerts: [...document.querySelectorAll("#hero-alert div")].map(d => d.textContent), contrast,
+      details: ["weather", "aq", "redflag", "incidents"].map(r => g(r + "-detail").textContent),
+      announced: g("hero-announce")?.textContent,
     };
   })()`;
 
@@ -145,6 +150,55 @@ try {
     });
   }
 
+  // ---- Santa Ana winds are said in words, not only shown by the red icon ----
+  await check("Santa Ana direction: weather row says so in text", async () => {
+    let r = await load("?debug=santaana");
+    assert.match(r.details[0], / · Santa Ana winds$/);
+    r = await load("?debug=clear"); // westerly wind
+    assert(!r.details[0].includes("Santa Ana"), "Santa Ana text shown for a westerly wind");
+  });
+
+  // ---- Screen reader structure ----
+  await check("hidden h1, main landmark, and a polite live line inside the status box", async () => {
+    await load("?debug=clear");
+    const s = await evaluate(`(() => {
+      const h1 = document.querySelector("h1"), live = document.querySelector("#hero [aria-live='polite']");
+      return { h1: h1?.textContent, h1Hidden: h1 && h1.getBoundingClientRect().width <= 1,
+               heroInMain: !!document.querySelector("main #hero"), rowsInMain: !!document.querySelector("main #row-incidents"),
+               live: live?.id };
+    })()`);
+    assert.equal(s.h1, "altaready: Altadena wildfire risk"); assert(s.h1Hidden, "h1 is visible");
+    assert(s.heroInMain && s.rowsInMain, "status box and rows not inside <main>");
+    assert.equal(s.live, "hero-announce");
+  });
+
+  await check("live line speaks only when the status changes, not on every refresh", async () => {
+    const min = n => new Date(Date.now() - n * 60e3).toISOString();
+    let r = await load("", sequence([snapshot({ updated: min(20) }), snapshot({ updated: min(5) }), snapshot({ redflag: { active: true } })]));
+    assert.equal(r.announced, "Low Risk");
+    await evaluate(`window.__liveWrites = 0; new MutationObserver(m => window.__liveWrites += m.length)
+      .observe(document.getElementById("hero-announce"), { childList: true, characterData: true, subtree: true })`);
+    const before = r.updated;
+    r = await refresh(); // same status, newer timestamp
+    assert.notEqual(r.updated, before, "test setup: timestamp should have changed");
+    assert.equal(await evaluate("window.__liveWrites"), 0, "live line rewritten on an unchanged refresh");
+    r = await refresh(); // red flag: status changes
+    assert.equal(r.announced, "High Risk");
+    assert(await evaluate("window.__liveWrites") > 0, "live line not updated when the status changed");
+  });
+
+  await check("'Updated' label matches the data shown, even if an older copy is served", async () => {
+    const newer = new Date(Date.now() - 5 * 60e3).toISOString(), older = new Date(Date.now() - 20 * 60e3).toISOString();
+    await load("", sequence([snapshot({ updated: newer }), snapshot({ updated: older })]));
+    const r = await refresh();
+    assert.equal(r.updated, "Updated " + await evaluate(`formatTime(new Date(${JSON.stringify(older)}))`));
+  });
+
+  await check("grey states are announced with their alerts", async () => {
+    const r = await load("?debug=stale");
+    assert.match(r.announced, /^Data unavailable\. Last known: Red Flag Warning \(as of .+\)\. Last known: Evacuation — /);
+  });
+
   // ---- Official alerts set a minimum risk level, even on a calm day ----
   await check("red flag on an otherwise calm day: at least High", async () => {
     const r = await load("", respondWith(snapshot({ redflag: { active: true } })));
@@ -166,6 +220,7 @@ try {
     const r = await load("?debug=offline");
     grey(r, "offline"); assert.equal(r.level, "Data unavailable"); assert.equal(r.updated, "No successful update yet");
     assert(r.badges.every(b => b === "var(--neutral-bg)"), "a row badge is coloured");
+    assert.deepEqual(r.details, Array(4).fill("Unavailable right now"));
     assert.deepEqual(r.alerts, []); passesAA(r, "offline"); noException(r, "offline");
   });
 
@@ -298,6 +353,12 @@ try {
 
     r = await refresh();
     assert.equal(r.level, "Low Risk"); assert.deepEqual(r.alerts, []); passesAA(r, "recovered");
+  });
+
+  await check("no requests to google.com (link-button icons are inline)", async () => {
+    assert(requests.length > 0, "test setup: no requests were recorded");
+    const google = requests.filter(u => { try { const h = new URL(u).hostname; return h === "google.com" || h.endsWith(".google.com"); } catch { return false; } });
+    assert.deepEqual(google, []);
   });
 
   console.log(`\nALL CHECKS PASSED (${passed.length}) — ${page}`);

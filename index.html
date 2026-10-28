@@ -281,7 +281,20 @@
     background: var(--dp-color-surface-compare);
   }
 
-  .source-btn img { border-radius: 3px; }
+  .source-btn svg { flex-shrink: 0; }
+
+  /* Read by screen readers, not shown on screen. */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
 
   /* Focus ring sits outside the shading so it's never mistaken for it. */
   a:focus-visible {
@@ -342,6 +355,7 @@
 <div class="wrap">
 
   <header>
+    <h1 class="visually-hidden">altaready: Altadena wildfire risk</h1>
     <div class="brand">
       <svg width="30" height="40" viewBox="0 0 388.93 486.17" fill="#3B6D11" aria-hidden="true">
         <path d="M194.47,486.17c-56.31-14.18-102.8-46.49-139.47-96.93C18.33,338.8,0,282.79,0,221.21V72.93L194.47,0l194.47,72.93v148.28c0,61.58-18.33,117.59-55,168.03-36.67,50.44-83.15,82.75-139.47,96.93ZM194.47,51.66L48.62,106.35v114.86c0,15.42,1.36,30.39,4.09,44.93l45.84-61.12,151.27,201.81c18.39-13.66,34.78-30.96,49.18-51.93,9.49-13.82,17.35-28.17,23.57-43.05l-89.73-119.79-58.15,77.34-24.09-31.47,82.24-109.66,103.39,137.86c2.72-14.54,4.09-29.51,4.09-44.93v-114.86l-145.85-54.69ZM98.54,268.81l-32.18,43.04c6.22,14.88,14.08,29.24,23.57,43.06,27.55,40.11,62.39,66.85,104.53,80.22,7.53-2.39,14.82-5.21,21.89-8.46l-117.81-157.86Z"/>
@@ -351,6 +365,7 @@
     <div class="subtitle">A community service</div>
   </header>
 
+  <main>
   <div class="hero" id="hero">
     <div class="eyebrow" id="hero-eyebrow">Current conditions</div>
     <div id="hero-score">—</div>
@@ -360,6 +375,8 @@
     <div class="level" id="hero-level">Loading…</div>
     <div class="hero-alert" id="hero-alert"></div>
     <div class="updated" id="hero-updated">&nbsp;</div>
+    <!-- Screen readers hear this line only when the level or an alert changes, not on every refresh. -->
+    <p class="visually-hidden" id="hero-announce" aria-live="polite"></p>
   </div>
 
   <div class="rows">
@@ -410,23 +427,24 @@
 
     <div class="source-row">
       <a href="https://protect.genasys.com/en/map/34.189040%2C-118.139526?lat=34.189&lng=-118.1395&z=12" target="_blank" rel="noopener" class="source-btn">
-        <img src="https://www.google.com/s2/favicons?domain=protect.genasys.com&sz=32" width="15" height="15" alt="">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         Genasys
       </a>
       <a href="https://www.fire.ca.gov/incidents.html" target="_blank" rel="noopener" class="source-btn">
-        <img src="https://www.google.com/s2/favicons?domain=www.fire.ca.gov&sz=32" width="15" height="15" alt="">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
         Cal Fire
       </a>
       <a href="https://egp.wildfire.gov/maps/?lat=34.185692&lon=-118.131512&zoom=14&dimension=2d&regionId=Nation" target="_blank" rel="noopener" class="source-btn">
-        <img src="https://www.google.com/s2/favicons?domain=egp.wildfire.gov&sz=32" width="15" height="15" alt="">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
         WildfireSA
       </a>
     </div>
 
   </div>
+  </main>
 
   <footer>
-    Not an official emergency alert system. In an active emergency, check on your neighbors and follow the instructions of local and county officials. <a href="https://github.com/timstrube/altadenafirewatch" target="_blank" rel="noopener">Click or tap here</a> for more info.
+    Not an official emergency alert system. In an active emergency, check on your neighbors and follow the instructions of local and county officials. <a href="https://github.com/timstrube/altadenafirewatch" target="_blank" rel="noopener">How this site works</a> for more info.
   </footer>
 
 </div>
@@ -487,7 +505,7 @@ function setDetail(rowId, text) {
 }
 
 function setUnavailable(rowId) {
-  setDetail(rowId, "Unavailable — see console (F12) for details");
+  setDetail(rowId, "Unavailable right now");
   // Neutral grey, not "low" green: missing data must never look like an all-clear.
   const el = document.getElementById(rowId + "-badge");
   el.style.background = "var(--neutral-bg)";
@@ -554,6 +572,16 @@ function alertLines() {
   return lines;
 }
 
+// Feeds the hidden live line in the status box. Writing only on a real change means
+// screen readers hear new levels and alerts, not every unchanged 15-minute refresh.
+let lastAnnounced = "";
+function announce(levelText, alerts) {
+  const text = [levelText, ...alerts].join(". ");
+  if (text === lastAnnounced) return;
+  lastAnnounced = text;
+  document.getElementById("hero-announce").textContent = text;
+}
+
 function setHeroAlerts(lines) {
   document.getElementById("hero-alert").replaceChildren(...lines.map(text => {
     const line = document.createElement("div");
@@ -572,7 +600,9 @@ function renderHeroGrey(levelText, updatedText) {
   document.getElementById("hero-score").textContent = "—";
   document.getElementById("hero-bar").style.width = "0%";
   document.getElementById("hero-level").textContent = levelText;
-  setHeroAlerts(alertLines());
+  const alerts = alertLines();
+  setHeroAlerts(alerts);
+  announce(levelText, alerts);
   document.getElementById("hero-updated").textContent = updatedText;
 }
 
@@ -624,6 +654,7 @@ function renderHero() {
   document.getElementById("hero-bar").style.width = Math.round(total) + "%";
   document.getElementById("hero-bar").style.background = s.text;
   document.getElementById("hero-level").textContent = s.label + " Risk";
+  announce(s.label + " Risk", []);
   document.getElementById("hero-updated").textContent = updatedText;
 }
 
@@ -677,7 +708,7 @@ function renderWeather(weather) {
   weatherIcon.style.color = santaAna ? "#B3261E" : "";
   weatherIcon.style.opacity = santaAna ? "1" : "0.65";
 
-  setDetail("weather", `Gust ${gust} mph · RH ${humidity}% · ${tempF}°F · ${dirLabel}`);
+  setDetail("weather", `Gust ${gust} mph · RH ${humidity}% · ${tempF}°F · ${dirLabel}` + (santaAna ? " · Santa Ana winds" : ""));
   setBadge("weather", state.weatherLevel, score >= 20 ? "High" : score > 0 ? "Moderate" : "Low");
 }
 
@@ -913,6 +944,7 @@ async function loadAll() {
     if (!lastUpdated || updated > lastUpdated) lastUpdated = updated;
     rememberAlerts(data, updated);
     if (Date.now() - updated > STALE_AFTER_MS) throw new Error("Snapshot is stale, from " + updated.toISOString());
+    lastUpdated = updated; // fresh data: the label must match what's shown, even if Cloudflare served an older copy
 
     renderWeather(data.weather);
     renderRedFlag(data.redflag);
