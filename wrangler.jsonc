@@ -1,0 +1,9 @@
+{
+  "name": "altaready",
+  "compatibility_date": "2026-08-26",
+  "assets": {
+    "directory": ".",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  }
+}
