@@ -82,7 +82,7 @@ try {
       heroBg: g("hero").style.background, redRow: g("row-redflag").style.background,
       badges: ["weather", "aq", "redflag", "incidents"].map(r => g(r + "-badge").style.background),
       incidents: { detail: g("incidents-detail").textContent, badge: g("incidents-badge").textContent,
-                   badgeBg: g("incidents-badge").style.background },
+                   badgeBg: g("incidents-badge").style.background, rowBg: g("row-incidents").style.background },
       alerts: [...document.querySelectorAll("#hero-alert div")].map(d => d.textContent), contrast,
     };
   })()`;
@@ -238,6 +238,27 @@ try {
     r = await refresh(); // evacuation feed back, order lifted
     assert.equal(r.level, "Low Risk"); assert.deepEqual(r.alerts, []);
     assert.equal(r.incidents.detail, "No active incidents detected"); assert.equal(r.incidents.badge, "None");
+  });
+
+  // ---- Only the fire-incident feed fails ----
+  await check("debug=fire-feed-down: row says fire status unavailable, never all-clear", async () => {
+    const r = await load("?debug=fire-feed-down");
+    grey(r, "fire-feed-down"); assert.equal(r.level, "Data incomplete");
+    assert.match(r.updated, /^Incomplete: Confirmed Incidents unavailable · Updated /);
+    assert.deepEqual(r.alerts, []);
+    assert.equal(r.incidents.detail, "Fire incident status unavailable · No evacuations");
+    assert.equal(r.incidents.badge, "—"); assert.equal(r.incidents.badgeBg, "var(--neutral-bg)");
+    passesAA(r, "fire-feed-down"); noException(r, "fire-feed-down");
+  });
+
+  await check("fire-incident feed down during an evacuation: evacuation stays red and active now", async () => {
+    const r = await load("", respondWith(snapshot({
+      incidents: { nifcOk: false, evacOk: true, evacActive: true, evacNote: "Zone B-3 (EVACUATION WARNING)" } })));
+    grey(r, "fire down, evac active"); assert.equal(r.level, "Data incomplete");
+    assert.deepEqual(r.alerts, ["Active now: Evacuation — Zone B-3 (EVACUATION WARNING)"]);
+    assert.equal(r.incidents.detail, "Zone B-3 (EVACUATION WARNING) · Fire incident status unavailable");
+    assert.equal(r.incidents.badge, "Critical"); assert.equal(r.incidents.badgeBg, "var(--crit-bg)");
+    assert.equal(r.incidents.rowBg, "var(--crit-bg)");
   });
 
   // ---- A refresh fails after a red flag day ----

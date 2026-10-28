@@ -459,6 +459,7 @@ const state = {
   nwsScore: 0, nwsLevel: "low",
   aqScore: 0, aqLevel: "low",
   incidentScore: 0, incidentLevel: "low",
+  evacReporting: false, // the evacuation feed answered this cycle (incidentScore can be null without it)
 };
 
 let lastUpdated = null;
@@ -548,7 +549,7 @@ function alertLines() {
     lines.push(reportingNow ? "Active now: " + label : `Last known: ${label} (as of ${formatTime(known.at)})`);
   };
   add(state.nwsScore !== null, lastKnown.redflag, "Red Flag Warning");
-  add(state.incidentScore !== null, lastKnown.evac,
+  add(state.evacReporting, lastKnown.evac,
     lastKnown.evac && lastKnown.evac.note ? "Evacuation — " + lastKnown.evac.note : "Evacuation");
   return lines;
 }
@@ -743,6 +744,7 @@ function renderAirQuality(air) {
 }
 
 function renderIncidents(incidents) {
+  state.evacReporting = Boolean(incidents && incidents.evacOk);
   if (!incidents || (!incidents.nifcOk && !incidents.evacOk)) {
     styleAlertRow("row-incidents", "incidents-icon", "low");
     state.incidentScore = null;
@@ -760,6 +762,15 @@ function renderIncidents(incidents) {
     return;
   }
 
+  if (!incidents.nifcOk && !incidents.evacActive) {
+    // Fire-incident feed down: never imply "no incidents". Grey badge; evacuation info can stay.
+    styleAlertRow("row-incidents", "incidents-icon", "low");
+    state.incidentScore = null;
+    setUnavailable("incidents");
+    setDetail("incidents", "Fire incident status unavailable · No evacuations");
+    return;
+  }
+
   let score = 0, level = "low", detail;
 
   if (incidents.evacActive) {
@@ -772,8 +783,11 @@ function renderIncidents(incidents) {
     detail = "No active incidents detected";
   }
 
-  // Evacuation feed down means evacuation status is unknown: no honest total, so the hero goes grey.
-  state.incidentScore = incidents.evacOk ? score : null;
+  // An active evacuation stays red even if the fire-incident feed is down; just say that part is unknown.
+  if (!incidents.nifcOk) detail = [detail, "Fire incident status unavailable"].filter(Boolean).join(" · ");
+
+  // Either feed down means part of the picture is unknown: no honest total, so the hero goes grey.
+  state.incidentScore = incidents.evacOk && incidents.nifcOk ? score : null;
   state.incidentLevel = level;
   setDetail("incidents", detail);
   setBadge("incidents", level, score >= 50 ? "Critical" : score > 0 ? "Elevated" : "None");
@@ -857,6 +871,15 @@ const DEBUG_SCENARIOS = {
     air: { source: "purpleair", avgPM25: 9, sensorCount: 3 },
     redflag: { active: false, watch: false },
     incidents: { nifcOk: true, evacOk: false, evacActive: false, nifcCount: 1 },
+    updated: new Date().toISOString(),
+  },
+  // Fire-incident feed down, evacuation feed fine (no evacuations): grey
+  // "Data incomplete", incidents row says fire status is unavailable.
+  "fire-feed-down": {
+    weather: { source: "ambient", gustMph: 15, humidity: 25, windDirDeg: 70, tempF: 80 },
+    air: { source: "purpleair", avgPM25: 9, sensorCount: 3 },
+    redflag: { active: false, watch: false },
+    incidents: { nifcOk: false, evacOk: true, evacActive: false },
     updated: new Date().toISOString(),
   },
 };
