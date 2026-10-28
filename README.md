@@ -1,45 +1,85 @@
-# Altadena Fire Watch
+# altaready
 
-A public, real-time wildfire early-warning page for Altadena, CA — combining a local weather station, air quality sensors, and official fire/evacuation feeds into a single composite risk score.
+A free, public wildfire early-warning page for Altadena, California, at **[altaready.info](https://altaready.info)**.
 
-## What this is
+It brings together a local weather station, nearby air-quality sensors, National Weather Service fire alerts, and official fire-incident and evacuation feeds into one 0–100 fire-risk score, refreshed every 15 minutes.
 
-Altadena Fire Watch is a static, client-side page that aggregates live conditions from a local Ambient Weather station, nearby PurpleAir air quality sensors, National Weather Service red flag alerts, and NIFC/Cal OES incident and evacuation data into a single 0–100 fire-risk score. The weather component uses the Fosberg Fire Weather Index (Fosberg, 1978) — the same category of formula used operationally by NWS and the US Forest Service — which derives fire danger from temperature, humidity, and wind speed via an equilibrium fuel-moisture model, with an added directional weighting for Santa Ana wind events given their role in the 2025 Eaton Fire. Air quality is scored against EPA's official PM2.5 AQI breakpoints. Official red flag warnings and confirmed evacuation orders act as hard overrides on the composite score rather than just inputs, so an authoritative alert can never be diluted by otherwise-calm conditions. Private data sources (the weather station and PurpleAir keys) are proxied through a Cloudflare Worker so no credentials are ever exposed client-side; Open-Meteo serves as an automatic fallback if the local station goes offline.
+> **This is not an official emergency alert system.** In an active emergency, check on your neighbors and follow the instructions of local and county officials. Sign up for official alerts at [Genasys Protect](https://protect.genasys.com) and follow [Cal Fire](https://www.fire.ca.gov/incidents).
 
-## Data sources
-
-| Source | Purpose | Access |
-|---|---|---|
-| Ambient Weather (via Cloudflare Worker) | Local wind, humidity, temperature | Requires a free API key + application key, kept server-side |
-| Open-Meteo | Fallback weather if the local station is offline | Free, no key |
-| PurpleAir (via Cloudflare Worker) | Local PM2.5 air quality | Requires a free developer key, kept server-side |
-| National Weather Service (api.weather.gov) | Red flag warnings / fire weather watches | Free, no key |
-| NIFC (WFIGS Current Incident Locations) | Active nearby wildfire incidents | Free, public ArcGIS feature service |
-| Cal OES (California Evacuation Aggregation Layer) | Active evacuation warnings/orders | Free, public ArcGIS feature service |
-
-## Architecture
+## How it works
 
 ```
-Browser (this page)
-  ├─▶ Open-Meteo, NWS, NIFC, Cal OES   (called directly — all public, keyless)
-  └─▶ Cloudflare Worker                (called for weather + air quality)
-        ├─▶ Ambient Weather API        (key stored as a Worker secret)
-        └─▶ PurpleAir API              (key stored as a Worker secret)
+Every 15 minutes
+  firewatch-api (Cloudflare Worker, scheduled)
+    ├─▶ Ambient Weather station   (Open-Meteo as fallback)
+    ├─▶ PurpleAir sensors
+    ├─▶ National Weather Service  (red flag warnings, fire weather watches)
+    ├─▶ NIFC                      (current wildfire incidents)
+    └─▶ Cal OES                   (evacuation warnings and orders)
+          └─▶ saves one snapshot to Cloudflare KV storage
+
+Every visitor
+  altaready.info (Cloudflare Worker serving index.html)
+    └─▶ reads that snapshot from firewatch-api
 ```
 
-The Worker also applies a short cache so a burst of site traffic doesn't translate into a burst of requests against the underlying weather station or sensor accounts.
+Visitors never call the data sources directly, so traffic spikes during an emergency don't hit them. The API keys live only as Cloudflare secrets.
 
 ## Scoring
 
-Each of the four inputs contributes an independent sub-score, summed into a 0–100 composite:
+Four sub-scores are added together into a 0–100 total:
 
-- **Weather** (0–50): Fosberg Fire Weather Index scaled down, plus a Santa Ana wind-direction bonus.
-- **Red flag warning** (0–40): binary NWS alert state; an active warning acts as a floor on the composite.
-- **Air quality** (0–30): PM2.5 mapped against EPA AQI breakpoints (12 / 35.4 / 55.4 µg/m³).
-- **Incidents** (0–60): confirmed evacuation zones or nearby active wildfire incidents; an active evacuation acts as a floor on the composite.
+| Source | Points | Based on |
+|---|---|---|
+| Weather | 0–50 | Fosberg Fire Weather Index (temperature, humidity, wind gusts), plus 5 for winds from the Santa Ana direction (20°–100°) |
+| NWS alerts | 0, 15 or 40 | 40 for a Red Flag Warning at Altadena or the foothills just above it; 15 for a Fire Weather Watch |
+| Air quality | 0–30 | Average PM2.5 against EPA breakpoints (12 / 35 / 55 µg/m³) |
+| Incidents | 0, 20 or 60 | 60 for an active evacuation warning or order nearby; 20 for nearby fire incidents with no evacuation |
 
-Composite bands: Low (0–14), Guarded (15–29), Elevated (30–49), High (50–69), Critical (70–100).
+Risk levels: **Low** 0–14 · **Guarded** 15–29 · **Elevated** 30–49 · **High** 50–69 · **Critical** 70–100.
 
-## Disclaimer
+The NWS check queries two points, Altadena itself and the Angeles National Forest foothills (`34.2130, -118.0970`), because Altadena's own forecast zone rarely receives a Red Flag Warning even when the mountains directly above it do.
 
-This is not an official emergency alert system. In an active emergency, check on your neighbors and follow instructions from local and county authorities.
+## When data is missing
+
+The page never shows a failure as an all-clear:
+
+- **No data, or data older than 45 minutes:** the score box turns grey and says "Data unavailable", with the time of the last good update. No score, no risk level.
+- **Red flag or incident/evacuation source missing:** grey "Data incomplete", because either one could be an active alert.
+- **Only weather or air quality missing:** the score still shows, marked "Incomplete".
+- **An alert seen earlier stays visible** ("Last known: Red Flag Warning, as of …") until fresh data says it has ended.
+
+## Repository layout
+
+| Path | What it is |
+|---|---|
+| `index.html` | The whole website: one self-contained page |
+| `wrangler.jsonc` | Settings for the website's Cloudflare Worker (`altaready`) |
+| `.assetsignore` | Files kept off the public site (this README, tests, backend code) |
+| `tests/fail-states.mjs` | Automated checks of every normal and failure state |
+| `worker/` | The data backend (`firewatch-api`): its code and settings |
+
+## Deploying
+
+- **Website:** pushing to `main` deploys `index.html` to altaready.info automatically, usually within a minute, through Cloudflare's GitHub connection. Pushes to other branches build a preview without touching the live site.
+- **Backend:** `worker/` is a record of the live `firewatch-api` Worker and is **not** deployed automatically. Changes to it are deployed separately and deliberately.
+
+## Testing
+
+Run `node tests/fail-states.mjs` from the repo folder before pushing changes to `index.html`. It needs only Node and Google Chrome.
+
+To preview a state by hand, add a debug parameter to the address, e.g. `altaready.info/?debug=critical`:
+
+| Parameter | Shows |
+|---|---|
+| `clear` | Low risk, everything normal |
+| `watch` | Fire Weather Watch with Santa Ana winds |
+| `santaana` | Santa Ana winds, High risk |
+| `redflag` | Active Red Flag Warning |
+| `critical` | Red flag plus an evacuation order |
+| `offline` | Data unavailable |
+| `stale` | Old data that had a red flag and evacuation |
+| `partial` | Red flag source missing ("Data incomplete") |
+| `partial-aq` | Only air quality missing |
+| `evac-feed-down` | Evacuation feed fails after an evacuation order |
+| `fire-feed-down` | Fire-incident feed down |

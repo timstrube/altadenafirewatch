@@ -1,0 +1,16 @@
+// Settings for the data backend Worker ("firewatch-api").
+// This records how the live Worker is configured. It is NOT deployed
+// automatically: pushing to GitHub only deploys the website. The three
+// API keys are stored as Cloudflare secrets and never belong in this file.
+{
+  "name": "firewatch-api",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-07-28",
+  "triggers": {
+    "crons": ["*/15 * * * *"]
+  },
+  "kv_namespaces": [
+    { "binding": "FIREWATCH_KV", "id": "5187b9ec9769460e8e6de3b0a15221bd" }
+  ]
+  // Secrets (set in Cloudflare, not here): AMBIENT_API_KEY, AMBIENT_APP_KEY, PURPLEAIR_API_KEY
+}
