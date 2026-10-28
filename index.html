@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,16 +7,63 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 388.93 486.17' fill='%233B6D11'%3E%3Cpath d='M194.47,486.17c-56.31-14.18-102.8-46.49-139.47-96.93C18.33,338.8,0,282.79,0,221.21V72.93L194.47,0l194.47,72.93v148.28c0,61.58-18.33,117.59-55,168.03-36.67,50.44-83.15,82.75-139.47,96.93ZM194.47,51.66L48.62,106.35v114.86c0,15.42,1.36,30.39,4.09,44.93l45.84-61.12,151.27,201.81c18.39-13.66,34.78-30.96,49.18-51.93,9.49-13.82,17.35-28.17,23.57-43.05l-89.73-119.79-58.15,77.34-24.09-31.47,82.24-109.66,103.39,137.86c2.72-14.54,4.09-29.51,4.09-44.93v-114.86l-145.85-54.69ZM98.54,268.81l-32.18,43.04c6.22,14.88,14.08,29.24,23.57,43.06,27.55,40.11,62.39,66.85,104.53,80.22,7.53-2.39,14.82-5.21,21.89-8.46l-117.81-157.86Z'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Both families are declared; the browser only downloads the one --dp-typography-face actually uses. -->
+<link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #FBFAF6;
-    --card: #ffffff;
-    --border: rgba(44,44,42,0.10);
-    --text: #2C2C2A;
-    --text-secondary: #5F5E5A;
-    --text-muted: #8B8A84;
+    /* ---- Clay demo tokens (approved mapping) ---- */
+    --dp-color-ground: #E9E8DF;
+    --dp-color-ink: #2C2C2A;
+    --dp-color-ink-secondary: #52514D;
+    --dp-color-accent: #3B6D11;
+    --dp-color-surface: #F1EFE8;
+    --dp-color-surface-support: #FBFAF6;
+    --dp-color-surface-compare: #F1EFE8;
+    --dp-color-surface-warm: #F3F0E7;
+    --dp-color-surface-cool: #E0E6D6;
 
+    /* Font swap: replace "Instrument Sans" with "Host Grotesk" on this one line. */
+    --dp-typography-face: "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --dp-typography-body: 16px;
+    --dp-typography-small: 15px;
+    --dp-typography-metadata: 13px;
+    --dp-typography-caption: 12px;
+    --dp-typography-reading-leading: 1.55;
+    --dp-typography-emphasis: 700;
+
+    --dp-spacing-gap: 24px;
+    --dp-spacing-gap-compact: 20px;
+    --dp-spacing-paragraph-gap: 18px;
+
+    --dp-radius-surface: 38px;
+    --dp-radius-tray: 70px;
+    --dp-radius-control: 999px;
+    --dp-radius-disclosure: 25px;
+
+    --dp-border-focus-width: 3px;
+    --dp-motion-interaction: 180ms;
+
+    /* Clay shading: one light source, upper left, everywhere.
+       Outer shadow falls lower-right; light inset on upper-left edge; dark inset on lower-right edge.
+       Large surfaces keep each inset's blur <= its offset, so the light inset can't bleed onto the
+       lower-right edge; bigger surfaces get bigger offsets for a wider, softer band. */
+    --clay-md: 8px 12px 24px rgba(58,56,40,.15), inset 6px 6px 6px rgba(255,255,255,.75), inset -6px -8px 8px rgba(58,56,40,.09);
+    --clay-lg: 18px 26px 52px rgba(58,56,40,.16), inset 14px 14px 14px rgba(255,255,255,.55), inset -14px -18px 18px rgba(58,56,40,.10);
+    --clay-pill:    4px 6px 12px rgba(58,56,40,.16), inset 3px 3px 5px rgba(255,255,255,.85), inset -3px -4px 6px rgba(58,56,40,.10);
+    --clay-pill-up: 6px 10px 18px rgba(58,56,40,.20), inset 3px 3px 5px rgba(255,255,255,.85), inset -3px -4px 6px rgba(58,56,40,.10);
+    --clay-pill-down: 1px 2px 4px rgba(58,56,40,.14), inset 2px 2px 4px rgba(58,56,40,.12), inset -2px -2px 4px rgba(255,255,255,.60);
+    --clay-badge:   2px 3px 6px rgba(58,56,40,.12), inset 2px 2px 3px rgba(255,255,255,.55), inset -2px -2px 4px rgba(58,56,40,.12);
+    --clay-well:    inset 2px 2px 4px rgba(0,0,0,.16), inset -2px -2px 3px rgba(255,255,255,.50);
+
+    /* ---- Original variable names: the page's JavaScript reads these. ---- */
+    --bg: var(--dp-color-ground);
+    --card: var(--dp-color-surface-support);
+    --border: transparent;
+    --text: var(--dp-color-ink);
+    --text-secondary: var(--dp-color-ink-secondary);
+    --text-muted: var(--dp-color-ink-secondary);
+
+    /* Risk-state colors: unchanged, reserved for status only. */
     --low-bg: #EAF3DE;    --low-text: #3B6D11;   --low-fg: #173404;
     --guard-bg: #FAEEDA;  --guard-text: #854F0B; --guard-fg: #412402;
     --elev-bg: #FBE7D6;   --elev-text: #99521A;  --elev-fg: #4A2A0C;
@@ -31,163 +77,263 @@
 
   body {
     margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: "Host Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--dp-color-ground);
+    color: var(--dp-color-ink);
+    font-family: var(--dp-typography-face);
+    font-size: var(--dp-typography-body);
+    line-height: var(--dp-typography-reading-leading);
     -webkit-font-smoothing: antialiased;
   }
 
   .wrap {
-    max-width: 480px;
+    max-width: 1120px;
     margin: 0 auto;
-    padding: 1.5rem 1.25rem 3rem;
+    padding: 24px 16px 48px;
   }
 
+  /* ---- Header ---- */
   header {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 3px;
-    margin-bottom: 1.75rem;
-  }
-
-  header .subtitle {
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--text-muted);
-    letter-spacing: 0.02em;
+    gap: 2px;
+    margin-bottom: var(--dp-spacing-gap-compact);
   }
 
   header .brand {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 25px;
-    font-weight: 600;
+    font-size: 26px;
+    font-weight: var(--dp-typography-emphasis);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
     transform: translateX(-4px);
   }
 
   header .brand svg { flex-shrink: 0; }
 
-  .hero {
-    border-radius: 20px;
-    padding: 1.75rem 1.5rem;
-    text-align: center;
-    margin-bottom: 1.25rem;
-    transition: background 0.4s ease;
+  header .subtitle {
+    font-size: var(--dp-typography-small);
+    font-weight: 500;
+    color: var(--dp-color-ink-secondary);
   }
 
+  /* ---- Lead cushion: current status ---- */
+  .hero {
+    background: var(--dp-color-surface);
+    border-radius: 32px;
+    padding: 29px 23px 27px;
+    text-align: center;
+    margin-bottom: var(--dp-spacing-gap-compact);
+    box-shadow: var(--clay-lg);
+  }
+
+  /* JS paints the hero/rows with var(--crit-bg) when critical; a 3px dark-red ring (outside the shading,
+     so it can't leave an unshaded strip) keeps them from reading as a soft pastel. */
+  .hero[style*="--crit-bg"] { box-shadow: 0 0 0 3px var(--crit-text), var(--clay-lg); }
+  .row[style*="--crit-bg"] { box-shadow: 0 0 0 3px var(--crit-text), var(--clay-md); }
+
   .hero .eyebrow {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
+    font-size: var(--dp-typography-metadata);
+    font-weight: var(--dp-typography-emphasis);
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    margin-bottom: 8px;
-    opacity: 0.85;
+    margin-bottom: 4px;
+    color: var(--neutral-text);
+  }
+
+  #hero-score {
+    font-size: clamp(54px, 4.6vw + 36px, 94px);
+    font-weight: var(--dp-typography-emphasis);
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hero-track {
+    width: min(280px, 72%);
+    height: 10px;
+    margin: 0 auto 14px;
+    border-radius: var(--dp-radius-control);
+    background: rgba(0,0,0,0.08);
+    box-shadow: var(--clay-well);
+  }
+
+  #hero-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: var(--dp-radius-control);
+    background: var(--neutral-text);
   }
 
   .hero .level {
-    font-size: 32px;
-    font-weight: 600;
-    margin-bottom: 6px;
-    line-height: 1.15;
+    font-size: clamp(26px, 1.6vw + 20px, 40px);
+    font-weight: var(--dp-typography-emphasis);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 8px;
+    color: var(--neutral-text);
   }
 
   .hero .updated {
-    font-size: 13px;
+    font-size: var(--dp-typography-small);
+    font-weight: 500;
+    color: var(--neutral-text);
   }
 
-  .rows { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.25rem; }
+  /* Last-known / still-active alerts inside the grey (data unavailable/incomplete) hero. */
+  .hero-alert div {
+    display: inline-block;
+    margin: 0 0 10px;
+    padding: 8px 18px;
+    border: 3px solid var(--crit-text);
+    border-radius: 24px;
+    background: var(--crit-bg);
+    color: var(--crit-text);
+    font-size: var(--dp-typography-small);
+    font-weight: var(--dp-typography-emphasis);
+    line-height: 1.35;
+    box-shadow: var(--clay-badge);
+  }
 
-  .source-row { display: flex; gap: 10px; }
+  /* ---- Reading tray with fact cushions ---- */
+  .rows {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    background: var(--dp-color-surface-cool);
+    border-radius: 36px;
+    padding: 14px;
+    margin-bottom: var(--dp-spacing-gap-compact);
+    box-shadow: var(--clay-lg);
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 12px;
+    background: var(--card);
+    border-radius: 28px;
+    padding: 17px 19px;
+    min-height: 72px;
+    box-shadow: var(--clay-md);
+  }
+
+  .row .left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 170px; }
+  .row .icon { flex-shrink: 0; opacity: 0.65; }
+  .row .label { font-size: var(--dp-typography-body); font-weight: var(--dp-typography-emphasis); line-height: 1.3; }
+  .row .detail { font-size: var(--dp-typography-small); line-height: 1.4; color: var(--dp-color-ink-secondary); margin-top: 2px; }
+
+  .badge {
+    flex-shrink: 0;
+    font-size: var(--dp-typography-metadata);
+    font-weight: var(--dp-typography-emphasis);
+    line-height: 1.2;
+    padding: 7px 14px;
+    border-radius: var(--dp-radius-control);
+    white-space: nowrap;
+    background: var(--neutral-bg);
+    color: var(--neutral-text);
+    box-shadow: var(--clay-badge);
+  }
+
+  /* ---- Source links: thick pills ---- */
+  .source-row {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 4px;
+  }
 
   .source-btn {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    background: var(--card);
-    border: 0.5px solid var(--border);
-    border-radius: 14px;
-    padding: 14px 8px;
-    min-height: 60px;
+    gap: 8px;
+    background: var(--dp-color-surface-support);
+    border-radius: var(--dp-radius-control);
+    padding: 14px 20px;
+    min-height: 56px;
     text-decoration: none;
-    color: var(--text);
+    color: var(--dp-color-ink);
     font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    font-size: var(--dp-typography-small);
+    font-weight: var(--dp-typography-emphasis);
+    box-shadow: var(--clay-pill);
+    transition: transform var(--dp-motion-interaction) ease,
+                box-shadow var(--dp-motion-interaction) ease,
+                background-color var(--dp-motion-interaction) ease;
   }
 
   @media (hover: hover) and (pointer: fine) {
-    .source-btn:hover {
-      background: var(--low-bg);
-      border-color: var(--low-text);
-    }
+    .source-btn:hover { transform: translateY(-2px); box-shadow: var(--clay-pill-up); }
+  }
+
+  .source-btn:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: var(--clay-pill-down);
+    background: var(--dp-color-surface-compare);
   }
 
   .source-btn img { border-radius: 3px; }
 
-  .row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    background: var(--card);
-    border: 0.5px solid var(--border);
-    border-radius: 14px;
-    padding: 14px 16px;
-    min-height: 60px;
+  /* Focus ring sits outside the shading so it's never mistaken for it. */
+  a:focus-visible {
+    outline: var(--dp-border-focus-width) solid var(--dp-color-accent);
+    outline-offset: 3px;
   }
 
-  .row .left { display: flex; align-items: center; gap: 10px; min-width: 0; }
-  .row .icon { flex-shrink: 0; opacity: 0.65; }
-  .row .label { font-size: 14.5px; font-weight: 500; }
-  .row .detail { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
-
-  .badge {
-    font-size: 12px;
-    font-weight: 600;
-    padding: 5px 12px;
-    border-radius: 20px;
-    white-space: nowrap;
-  }
-
+  /* ---- Footer tray ---- */
   footer {
+    background: var(--dp-color-surface-warm);
+    border-radius: 36px;
+    padding: 22px 22px;
     text-align: center;
-    font-size: 12px;
-    color: var(--text-muted);
-    line-height: 1.6;
+    font-size: var(--dp-typography-small);
+    line-height: var(--dp-typography-reading-leading);
+    color: var(--dp-color-ink-secondary);
+    box-shadow: var(--clay-lg);
   }
 
-  footer a { color: var(--text-muted); }
-
-  .error-note {
-    font-size: 11.5px;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-
-  /* Grey and incomplete hero states: no fading, so the text passes AA contrast. */
-  .hero.is-degraded .eyebrow { opacity: 1; }
-
-  /* Last-known / still-active alerts inside the grey hero. */
-  .hero-alert div {
-    display: inline-block;
-    margin: 2px 0 8px;
-    padding: 6px 12px;
-    border: 1px solid var(--crit-text);
-    border-radius: 12px;
-    background: var(--crit-bg);
-    color: var(--crit-text);
-    font-size: 14px;
+  footer a {
+    color: var(--dp-color-ink);
     font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* ---- Responsive (mobile-first) ---- */
+  @media (min-width: 461px) {
+    .rows { grid-template-columns: 1fr 1fr; padding: 20px; border-radius: 48px; }
+    .row { border-radius: 32px; }
+    .source-row { flex-direction: row; }
+    .source-btn { padding: 14px 12px; }
+  }
+
+  @media (min-width: 761px) {
+    .wrap { padding: 40px 32px 64px; }
+    header { margin-bottom: var(--dp-spacing-gap); }
+    .hero { border-radius: var(--dp-radius-surface); padding: 51px 43px 47px; }
+    .rows { padding: 36px; border-radius: var(--dp-radius-tray); gap: var(--dp-spacing-gap-compact); }
+    .row { border-radius: var(--dp-radius-surface); padding: 21px 25px; min-height: 88px; }
+    footer { border-radius: var(--dp-radius-tray); padding: 32px 56px; }
+  }
+
+  @media (min-width: 1101px) {
+    .hero, .rows { margin-bottom: var(--dp-spacing-gap); }
+    .rows { gap: var(--dp-spacing-gap); padding: 40px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .hero { transition: none; }
+    *, *::before, *::after { transition: none !important; }
+    .source-btn:hover, .source-btn:active { transform: none; }
   }
 </style>
 </head>
@@ -197,7 +343,7 @@
 
   <header>
     <div class="brand">
-      <svg width="30" height="40" viewBox="0 0 388.93 486.17" fill="#3B6D11">
+      <svg width="30" height="40" viewBox="0 0 388.93 486.17" fill="#3B6D11" aria-hidden="true">
         <path d="M194.47,486.17c-56.31-14.18-102.8-46.49-139.47-96.93C18.33,338.8,0,282.79,0,221.21V72.93L194.47,0l194.47,72.93v148.28c0,61.58-18.33,117.59-55,168.03-36.67,50.44-83.15,82.75-139.47,96.93ZM194.47,51.66L48.62,106.35v114.86c0,15.42,1.36,30.39,4.09,44.93l45.84-61.12,151.27,201.81c18.39-13.66,34.78-30.96,49.18-51.93,9.49-13.82,17.35-28.17,23.57-43.05l-89.73-119.79-58.15,77.34-24.09-31.47,82.24-109.66,103.39,137.86c2.72-14.54,4.09-29.51,4.09-44.93v-114.86l-145.85-54.69ZM98.54,268.81l-32.18,43.04c6.22,14.88,14.08,29.24,23.57,43.06,27.55,40.11,62.39,66.85,104.53,80.22,7.53-2.39,14.82-5.21,21.89-8.46l-117.81-157.86Z"/>
       </svg>
       <span>altaready</span>
@@ -205,22 +351,22 @@
     <div class="subtitle">A community service</div>
   </header>
 
-  <div class="hero" id="hero" style="background: var(--neutral-bg);">
-    <div class="eyebrow" id="hero-eyebrow" style="color: var(--neutral-text);">Current conditions</div>
-    <div id="hero-score" style="font-size:40px; font-weight:600; line-height:1; margin-bottom:8px;">—</div>
-    <div style="background: rgba(0,0,0,0.08); border-radius: 20px; height: 6px; width: 160px; margin: 0 auto 10px;">
-      <div id="hero-bar" style="height: 100%; width: 0%; border-radius: 20px; background: var(--neutral-text); transition: width 0.4s ease, background 0.4s ease;"></div>
+  <div class="hero" id="hero">
+    <div class="eyebrow" id="hero-eyebrow">Current conditions</div>
+    <div id="hero-score">—</div>
+    <div class="hero-track">
+      <div id="hero-bar"></div>
     </div>
-    <div class="level" id="hero-level" style="color: var(--neutral-text); font-size:20px; margin-bottom:6px;">Loading…</div>
+    <div class="level" id="hero-level">Loading…</div>
     <div class="hero-alert" id="hero-alert"></div>
-    <div class="updated" id="hero-updated" style="color: var(--neutral-text);">&nbsp;</div>
+    <div class="updated" id="hero-updated">&nbsp;</div>
   </div>
 
   <div class="rows">
 
     <div class="row" id="row-weather">
       <div class="left">
-        <svg class="icon" id="weather-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+        <svg class="icon" aria-hidden="true" id="weather-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>
         <div>
           <div class="label">Weather</div>
           <div class="detail" id="weather-detail">Fetching…</div>
@@ -231,7 +377,7 @@
 
     <div class="row" id="row-aq">
       <div class="left">
-        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/></svg>
+        <svg class="icon" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/></svg>
         <div>
           <div class="label">Air Quality</div>
           <div class="detail" id="aq-detail">Fetching…</div>
@@ -242,7 +388,7 @@
 
     <div class="row" id="row-redflag">
       <div class="left">
-        <svg class="icon" id="redflag-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        <svg class="icon" aria-hidden="true" id="redflag-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
         <div>
           <div class="label">Red Flag Warning</div>
           <div class="detail" id="redflag-detail">Fetching…</div>
@@ -253,7 +399,7 @@
 
     <div class="row" id="row-incidents">
       <div class="left">
-        <svg class="icon" id="incidents-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <svg class="icon" aria-hidden="true" id="incidents-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <div>
           <div class="label">Confirmed Incidents</div>
           <div class="detail" id="incidents-detail">Fetching…</div>
@@ -280,7 +426,7 @@
   </div>
 
   <footer>
-    Not an official emergency alert system. In an active emergency, check on your neighbors and follow the instructions of local and county officials. <a href="https://github.com/timstrube/altadenafirewatch" target="_blank" rel="noopener" style="color: var(--text-secondary); text-decoration: underline;">Click or tap here</a> for more info.
+    Not an official emergency alert system. In an active emergency, check on your neighbors and follow the instructions of local and county officials. <a href="https://github.com/timstrube/altadenafirewatch" target="_blank" rel="noopener">Click or tap here</a> for more info.
   </footer>
 
 </div>
@@ -601,6 +747,16 @@ function renderIncidents(incidents) {
     styleAlertRow("row-incidents", "incidents-icon", "low");
     state.incidentScore = null;
     setUnavailable("incidents");
+    return;
+  }
+
+  if (!incidents.evacOk && !incidents.evacActive) {
+    // Evacuation feed down: never imply "no evacuations". Grey badge; fire-incident info can stay.
+    styleAlertRow("row-incidents", "incidents-icon", "low");
+    state.incidentScore = null;
+    setUnavailable("incidents");
+    setDetail("incidents", (incidents.nifcCount > 0 ? `${incidents.nifcCount} nearby fire incident(s)` : "No nearby fire incidents") +
+      " · Evacuation status unavailable");
     return;
   }
 

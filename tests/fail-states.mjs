@@ -81,6 +81,8 @@ try {
       score: g("hero-score").textContent, level: g("hero-level").textContent, updated: g("hero-updated").textContent,
       heroBg: g("hero").style.background, redRow: g("row-redflag").style.background,
       badges: ["weather", "aq", "redflag", "incidents"].map(r => g(r + "-badge").style.background),
+      incidents: { detail: g("incidents-detail").textContent, badge: g("incidents-badge").textContent,
+                   badgeBg: g("incidents-badge").style.background },
       alerts: [...document.querySelectorAll("#hero-alert div")].map(d => d.textContent), contrast,
     };
   })()`;
@@ -109,6 +111,12 @@ try {
   const grey = (r, name) => {
     assert.equal(r.score, "—", `${name}: score shown`);
     assert.equal(r.heroBg, "var(--neutral-bg)", `${name}: status box not grey`);
+  };
+  // Evacuation feed down: the incidents row must say so, in grey, and never imply "no evacuations".
+  const evacUnknownRow = (r, detail, name) => {
+    assert.equal(r.incidents.detail, detail, `${name}: incidents row wording`);
+    assert.equal(r.incidents.badge, "—", `${name}: incidents badge`);
+    assert.equal(r.incidents.badgeBg, "var(--neutral-bg)", `${name}: incidents badge not grey`);
   };
   const passesAA = (r, name) => assert(r.contrast.every(c => c >= 4.5), `${name}: status box contrast ${r.contrast}`);
   const noException = (r, name) => assert.equal(r.exceptions, 0, `${name}: page threw an exception`);
@@ -203,7 +211,14 @@ try {
     assert.match(r.updated, /^Incomplete: Confirmed Incidents unavailable · Updated /);
     assert.equal(r.alerts.length, 1);
     assert.match(r.alerts[0], /^Last known: Evacuation — Zone A-12 \(EVACUATION ORDER\) \(as of .+\)$/);
+    evacUnknownRow(r, "1 nearby fire incident(s) · Evacuation status unavailable", "evac-feed-down");
     passesAA(r, "evac-feed-down"); noException(r, "evac-feed-down");
+  });
+
+  await check("evacuation feed down, no fire incidents: row never says all-clear", async () => {
+    const r = await load("", respondWith(snapshot({ incidents: { nifcOk: true, evacOk: false, nifcCount: 0 } })));
+    grey(r, "evac down, no fires"); assert.equal(r.level, "Data incomplete");
+    evacUnknownRow(r, "No nearby fire incidents · Evacuation status unavailable", "evac down, no fires");
   });
 
   await check("evacuation order, then only the evacuation feed fails, then it recovers", async () => {
@@ -218,9 +233,11 @@ try {
     r = await refresh();
     grey(r, "evac feed down"); assert.equal(r.level, "Data incomplete");
     assert.match(r.alerts[0] || "", /^Last known: Evacuation — Zone A-12 \(EVACUATION ORDER\) \(as of /);
+    evacUnknownRow(r, "1 nearby fire incident(s) · Evacuation status unavailable", "evac feed down");
 
     r = await refresh(); // evacuation feed back, order lifted
     assert.equal(r.level, "Low Risk"); assert.deepEqual(r.alerts, []);
+    assert.equal(r.incidents.detail, "No active incidents detected"); assert.equal(r.incidents.badge, "None");
   });
 
   // ---- A refresh fails after a red flag day ----

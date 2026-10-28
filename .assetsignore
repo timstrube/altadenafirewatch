@@ -5,5 +5,4 @@ node_modules
 README.md
 wrangler.jsonc
 .assetsignore
-index-clay.html
 tests
