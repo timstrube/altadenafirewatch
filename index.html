@@ -390,7 +390,7 @@ function rememberAlerts(data, at) {
   if (data.redflag && !data.redflag.error && !(lastKnown.redflag && at < lastKnown.redflag.at))
     lastKnown.redflag = { active: data.redflag.active === true, at };
   const inc = data.incidents;
-  if (inc && (inc.nifcOk || inc.evacOk) && !(lastKnown.evac && at < lastKnown.evac.at))
+  if (inc && inc.evacOk && !(lastKnown.evac && at < lastKnown.evac.at))
     lastKnown.evac = { active: inc.evacActive === true, note: inc.evacNote, at };
 }
 
@@ -616,7 +616,8 @@ function renderIncidents(incidents) {
     detail = "No active incidents detected";
   }
 
-  state.incidentScore = score;
+  // Evacuation feed down means evacuation status is unknown: no honest total, so the hero goes grey.
+  state.incidentScore = incidents.evacOk ? score : null;
   state.incidentLevel = level;
   setDetail("incidents", detail);
   setBadge("incidents", level, score >= 50 ? "Critical" : score > 0 ? "Elevated" : "None");
@@ -689,6 +690,19 @@ const DEBUG_SCENARIOS = {
     incidents: { nifcOk: true, evacOk: true, evacActive: true, evacNote: "Zone A-12 (EVACUATION ORDER)", nifcCount: 1 },
     updated: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
   },
+  // Snapshot 15 minutes ago had an evacuation order; now only the evacuation
+  // feed is down. Grey "Data incomplete" that keeps the evacuation as last known.
+  "evac-feed-down": {
+    before: {
+      incidents: { nifcOk: true, evacOk: true, evacActive: true, evacNote: "Zone A-12 (EVACUATION ORDER)", nifcCount: 1 },
+      updated: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+    },
+    weather: { source: "ambient", gustMph: 15, humidity: 25, windDirDeg: 70, tempF: 80 },
+    air: { source: "purpleair", avgPM25: 9, sensorCount: 3 },
+    redflag: { active: false, watch: false },
+    incidents: { nifcOk: true, evacOk: false, evacActive: false, nifcCount: 1 },
+    updated: new Date().toISOString(),
+  },
 };
 
 // Single fetch to the Worker, which itself only reads a snapshot from KV —
@@ -702,6 +716,8 @@ async function loadAll() {
       console.log("DEBUG MODE — previewing scenario:", debugParam);
       data = DEBUG_SCENARIOS[debugParam];
       if (data.offline) throw new Error("Simulated Worker failure (debug=offline)");
+      // Some scenarios first replay an earlier snapshot, as if this tab had already seen it.
+      if (data.before) rememberAlerts(data.before, new Date(data.before.updated));
     } else {
       const res = await fetch(WORKER_URL, { cache: "no-store" });
       if (!res.ok) throw new Error("Worker responded " + res.status);
