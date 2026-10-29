@@ -7,3 +7,4 @@ wrangler.jsonc
 .assetsignore
 tests
 worker
+CLAUDE.md
