@@ -40,6 +40,8 @@ Risk levels: **Low** 0–14 · **Guarded** 15–29 · **Elevated** 30–49 · **
 
 Official alerts also set a minimum, so calm weather can never water them down: an **active evacuation warning or order is always Critical** (at least 70), and an **active Red Flag Warning is always at least High** (at least 50).
 
+Evacuations count whatever their cause (fire, debris flow, flood): the row shows a short headline such as "Evacuation Warning: Debris flow risk", and hovering or tapping it lists every zone, the official notice, and where to check your own zone.
+
 The NWS check queries two points, Altadena itself and the Angeles National Forest foothills (`34.2130, -118.0970`), because Altadena's own forecast zone rarely receives a Red Flag Warning even when the mountains directly above it do.
 
 ## When data is missing
@@ -84,6 +86,7 @@ To preview a state by hand, add a debug parameter to the address, e.g. `altaread
 | `santaana` | Santa Ana winds, High risk |
 | `redflag` | Active Red Flag Warning |
 | `critical` | Red flag plus an evacuation order |
+| `debrisflow` | Non-fire evacuation warning (debris flow), with the zones pop-over |
 | `offline` | Data unavailable |
 | `stale` | Old data that had a red flag and evacuation |
 | `partial` | Red flag source missing ("Data incomplete") |

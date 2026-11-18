@@ -215,6 +215,72 @@ try {
     assert.equal(r.level, "Guarded Risk");
   });
 
+  // ---- Evacuation headline and details pop-over ----
+  const POP = `(() => {
+    const pop = document.getElementById("evac-pop"), btn = document.querySelector("#incidents-detail .evac-trigger");
+    const px = c => c.match(/[\\d.]+/g).map(Number);
+    const lum = ([r, gr, b]) => { const f = v => (v /= 255) <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; return .2126 * f(r) + .7152 * f(gr) + .0722 * f(b); };
+    const bg = px(getComputedStyle(pop).backgroundColor).slice(0, 3);
+    const contrast = [...pop.querySelectorAll("h3, li, p, a")].map(el => {
+      const [x, y] = [lum(px(getComputedStyle(el).color).slice(0, 3)), lum(bg)].sort((p, q) => q - p);
+      return +((x + .05) / (y + .05)).toFixed(2); });
+    const r = pop.getBoundingClientRect();
+    return { hidden: pop.hidden, visible: !pop.hidden && r.height > 0, expanded: btn?.getAttribute("aria-expanded"),
+             zones: [...pop.querySelectorAll("li")].map(li => li.textContent), text: pop.textContent,
+             links: [...pop.querySelectorAll("a")].map(a => a.href), contrast,
+             onScreen: r.left >= 0 && r.right <= innerWidth + 1 };
+  })()`;
+  await check("debug=debrisflow: short headline in the row, still Critical, zones only in the pop-over", async () => {
+    const r = await load("?debug=debrisflow");
+    assert.equal(r.incidents.detail, "Evacuation Warning: Debris flow risk · 6 zones");
+    assert.doesNotMatch(r.incidents.detail, /Zone \(|EATONCANYON|burn scar/);
+    assert.equal(r.incidents.badge, "Critical"); assert.equal(r.level, "Critical Risk");
+    passesAA(r, "debrisflow"); noException(r, "debrisflow");
+    const p = await evaluate(POP);
+    assert(p.hidden, "pop-over open before any interaction"); assert.equal(p.expanded, "false");
+  });
+  await check("tapping the headline opens the zones pop-over; Escape and tapping outside close it", async () => {
+    await load("?debug=debrisflow");
+    await evaluate(`document.querySelector("#incidents-detail .evac-trigger").click()`);
+    let p = await evaluate(POP);
+    assert(p.visible, "pop-over did not open"); assert.equal(p.expanded, "true");
+    assert.deepEqual(p.zones, ["ALD-EATONCANYON", "KIN-KINNELOA-B", "KIN-KINNELOA-A", "LAC-E183", "ALD-EASTLOMA", "ALD-RUBIO"]);
+    assert.match(p.text, /^Evacuation Warning · 6 zones/);
+    assert.match(p.text, /Official notice: LASD: /);
+    assert.deepEqual(p.links, ["https://alertla.org/", "https://protect.genasys.com/"]);
+    assert(p.contrast.every(c => c >= 4.5), `pop-over contrast ${p.contrast}`);
+    assert(p.onScreen, "pop-over runs off the side of a 390px screen");
+    await evaluate(`document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }))`);
+    p = await evaluate(POP); assert(p.hidden, "Escape did not close"); assert.equal(p.expanded, "false");
+    await evaluate(`document.querySelector("#incidents-detail .evac-trigger").click(); document.body.click()`);
+    p = await evaluate(POP); assert(p.hidden, "tap outside did not close");
+  });
+  await check("feed text is shown as plain text, never as HTML", async () => {
+    const evil = "<img src=x onerror=window.__pwned=1>";
+    const r = await load("", respondWith(snapshot({ incidents: { nifcOk: true, evacOk: true, nifcCount: 0, evacActive: true,
+      evacNote: "Evacuation Order", evac: { status: "Evacuation Order", headline: "Evacuation Order", hazard: null, info: evil,
+        zones: [{ name: evil, status: "Evacuation Order" }] } } })));
+    await evaluate(`document.querySelector("#incidents-detail .evac-trigger").click()`);
+    const s = await evaluate(`({ imgs: document.querySelectorAll("#evac-pop img").length, pwned: !!window.__pwned })`);
+    assert.equal(s.imgs, 0); assert.equal(s.pwned, false);
+    assert.equal(r.level, "Critical Risk");
+  });
+  await check("older backend data (no zone details) still shows the evacuation as before", async () => {
+    const r = await load("?debug=critical");
+    assert.equal(r.incidents.detail, "Zone A-12 (EVACUATION ORDER)");
+    assert.equal(r.level, "Critical Risk");
+    const p = await evaluate(POP); assert(p.hidden);
+  });
+  await check("evacuation ends: headline and pop-over cleared, no stale details", async () => {
+    const debris = await evaluate(`DEBUG_SCENARIOS.debrisflow`);
+    const r0 = await load("", sequence([debris, snapshot()]));
+    await evaluate(`document.querySelector("#incidents-detail .evac-trigger").click()`);
+    const r = await refresh();
+    assert.equal(r.incidents.detail, "No active incidents detected");
+    const p = await evaluate(POP); assert(p.hidden); assert.equal(p.zones.length, 0);
+    assert.equal(r0.incidents.badge, "Critical");
+  });
+
   // ---- Worker failures ----
   await check("debug=offline: grey, no green anywhere", async () => {
     const r = await load("?debug=offline");

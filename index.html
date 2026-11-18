@@ -228,6 +228,38 @@
   .row .label { font-size: var(--dp-typography-body); font-weight: var(--dp-typography-emphasis); line-height: 1.3; }
   .row .detail { font-size: var(--dp-typography-small); line-height: 1.4; color: var(--dp-color-ink-secondary); margin-top: 2px; }
 
+  /* ---- Evacuation details: hover (desktop) or tap (mobile) the headline ---- */
+  #row-incidents { position: relative; }
+  .evac-trigger {
+    font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0;
+    text-align: left; cursor: pointer;
+    text-decoration: underline dotted; text-underline-offset: 3px;
+  }
+  .evac-trigger .more { font-weight: var(--dp-typography-emphasis); white-space: nowrap; }
+  .evac-trigger:focus-visible {
+    outline: var(--dp-border-focus-width) solid var(--dp-color-accent);
+    outline-offset: 3px; border-radius: 4px;
+  }
+  .evac-pop {
+    position: absolute; z-index: 20;
+    left: 12px; right: 12px; top: calc(100% + 8px);
+    background: var(--dp-color-surface);
+    color: var(--dp-color-ink);
+    border: 2px solid var(--crit-text);
+    border-radius: var(--dp-radius-disclosure);
+    padding: 16px 18px;
+    box-shadow: 8px 12px 28px rgba(58,56,40,.25);
+    font-size: var(--dp-typography-small);
+    line-height: var(--dp-typography-reading-leading);
+    text-align: left;
+  }
+  .evac-pop[hidden] { display: none; }
+  .evac-pop h3 { margin: 0 0 6px; font-size: var(--dp-typography-body); font-weight: var(--dp-typography-emphasis); color: var(--crit-text); }
+  .evac-pop ul { margin: 0 0 10px; padding-left: 18px; }
+  .evac-pop .notice { margin: 0 0 10px; color: var(--dp-color-ink-secondary); }
+  .evac-pop p:last-child { margin: 0; }
+  .evac-pop a { color: var(--dp-color-accent); font-weight: var(--dp-typography-emphasis); }
+
   .badge {
     flex-shrink: 0;
     font-size: var(--dp-typography-metadata);
@@ -417,6 +449,7 @@
         <div>
           <div class="label">Confirmed Incidents</div>
           <div class="detail" id="incidents-detail">Fetching…</div>
+          <div class="evac-pop" id="evac-pop" role="region" aria-label="Evacuation details" hidden></div>
         </div>
       </div>
       <div class="badge" id="incidents-badge" style="background: var(--neutral-bg); color: var(--neutral-text);">—</div>
@@ -564,8 +597,9 @@ function alertLines() {
     lines.push(reportingNow ? "Active now: " + label : `Last known: ${label} (as of ${formatTime(known.at)})`);
   };
   add(state.nwsScore !== null, lastKnown.redflag, "Red Flag Warning");
+  const note = lastKnown.evac && lastKnown.evac.note;
   add(state.evacReporting, lastKnown.evac,
-    lastKnown.evac && lastKnown.evac.note ? "Evacuation — " + lastKnown.evac.note : "Evacuation");
+    !note ? "Evacuation" : /^(evacuation|shelter)/i.test(note) ? note : "Evacuation — " + note);
   return lines;
 }
 
@@ -775,8 +809,106 @@ function renderAirQuality(air) {
   setBadge("aq", state.aqLevel, score >= 15 ? "High" : score > 0 ? "Moderate" : "Low");
 }
 
+/* Evacuation headline + details pop-over. The row shows only the headline
+   ("Evacuation Warning: Debris flow risk"); hovering (desktop), tapping (mobile)
+   or pressing Enter on it reveals every zone, the official notice and where to
+   check your own zone. All text from the feed is inserted as plain text. */
+let evacPopPinned = false;
+
+function closeEvacPop() {
+  evacPopPinned = false;
+  const pop = document.getElementById("evac-pop");
+  pop.hidden = true;
+  const btn = document.querySelector("#incidents-detail .evac-trigger");
+  if (btn) btn.setAttribute("aria-expanded", "false");
+}
+
+function openEvacPop(pin) {
+  const pop = document.getElementById("evac-pop");
+  const btn = document.querySelector("#incidents-detail .evac-trigger");
+  if (!btn || !pop.childNodes.length) return;
+  if (pin) evacPopPinned = true;
+  pop.hidden = false;
+  btn.setAttribute("aria-expanded", "true");
+}
+
+function renderEvacDetail(evac, extra) {
+  const detailEl = document.getElementById("incidents-detail");
+  const pop = document.getElementById("evac-pop");
+  const zones = Array.isArray(evac.zones) ? evac.zones : [];
+  const headline = String(evac.headline || evac.status || "Evacuation");
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "evac-trigger";
+  btn.setAttribute("aria-expanded", "false");
+  btn.setAttribute("aria-controls", "evac-pop");
+  btn.append(headline + " ");
+  const more = document.createElement("span");
+  more.className = "more";
+  more.textContent = zones.length ? `· ${zones.length} zone${zones.length === 1 ? "" : "s"}` : "· details";
+  btn.append(more);
+  detailEl.replaceChildren(btn);
+  if (extra) detailEl.append(" · " + extra);
+
+  const h = document.createElement("h3");
+  h.textContent = zones.length ? `${evac.status || "Evacuation"} · ${zones.length} zone${zones.length === 1 ? "" : "s"}` : String(evac.status || "Evacuation");
+  const list = document.createElement("ul");
+  const mixed = new Set(zones.map(z => z.status)).size > 1;
+  for (const z of zones) {
+    const li = document.createElement("li");
+    li.textContent = mixed ? `${z.name} (${z.status})` : String(z.name);
+    list.append(li);
+  }
+  const parts = [h];
+  if (zones.length) parts.push(list);
+  if (evac.info) {
+    const p = document.createElement("p");
+    p.className = "notice";
+    p.textContent = "Official notice: " + evac.info;
+    parts.push(p);
+  }
+  const check = document.createElement("p");
+  check.append("Check your zone: ");
+  for (const [i, [href, text]] of [["https://alertla.org", "alertla.org"], ["https://protect.genasys.com", "Genasys Protect"]].entries()) {
+    if (i) check.append(" · ");
+    const a = document.createElement("a");
+    a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = text;
+    check.append(a);
+  }
+  parts.push(check);
+  pop.replaceChildren(...parts);
+  if (!evacPopPinned) pop.hidden = true; else openEvacPop(false);
+}
+
+(function wireEvacPop() {
+  const row = document.getElementById("row-incidents");
+  const canHover = window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  row.addEventListener("click", e => {
+    if (!e.target.closest(".evac-trigger")) return;
+    const pop = document.getElementById("evac-pop");
+    if (!pop.hidden && evacPopPinned) closeEvacPop(); else openEvacPop(true);
+  });
+  if (canHover) {
+    row.addEventListener("mouseover", e => { if (e.target.closest(".evac-trigger, .evac-pop")) openEvacPop(false); });
+    row.addEventListener("mouseleave", () => { if (!evacPopPinned) closeEvacPop(); });
+  }
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !document.getElementById("evac-pop").hidden) {
+      closeEvacPop();
+      document.querySelector("#incidents-detail .evac-trigger")?.focus();
+    }
+  });
+  document.addEventListener("click", e => { if (!row.contains(e.target)) closeEvacPop(); });
+})();
+
 function renderIncidents(incidents) {
   state.evacReporting = Boolean(incidents && incidents.evacOk);
+  // Any non-evacuation state replaces the headline; never leave a stale pop-over open.
+  if (!(incidents && incidents.evacActive && incidents.evac)) {
+    closeEvacPop();
+    document.getElementById("evac-pop").replaceChildren();
+  }
   if (!incidents || (!incidents.nifcOk && !incidents.evacOk)) {
     styleAlertRow("row-incidents", "incidents-icon", "low");
     state.incidentScore = null;
@@ -821,7 +953,12 @@ function renderIncidents(incidents) {
   // Either feed down means part of the picture is unknown: no honest total, so the hero goes grey.
   state.incidentScore = incidents.evacOk && incidents.nifcOk ? score : null;
   state.incidentLevel = level;
-  setDetail("incidents", detail);
+  if (incidents.evacActive && incidents.evac) {
+    // Newer backend: short headline in the row, zones and notice in the pop-over.
+    renderEvacDetail(incidents.evac, incidents.nifcOk ? "" : "Fire incident status unavailable");
+  } else {
+    setDetail("incidents", detail);
+  }
   setBadge("incidents", level, score >= 50 ? "Critical" : score > 0 ? "Elevated" : "None");
   styleAlertRow("row-incidents", "incidents-icon", level);
 }
@@ -849,6 +986,19 @@ const DEBUG_SCENARIOS = {
     air: { source: "purpleair", avgPM25: 15, sensorCount: 3 },
     redflag: { active: false, watch: false },
     incidents: { nifcOk: true, evacOk: true, evacActive: false, nifcCount: 0 },
+    updated: new Date().toISOString(),
+  },
+  // A non-fire evacuation, shaped like the real 2026-11-18 Eaton burn-scar warning.
+  debrisflow: {
+    weather: { source: "ambient", gustMph: 7, humidity: 45, windDirDeg: 173, tempF: 65 },
+    air: { source: "purpleair", avgPM25: 0.3, sensorCount: 3 },
+    redflag: { active: false, watch: false },
+    incidents: { nifcOk: true, evacOk: true, evacActive: true, nifcCount: 0,
+      evacNote: "Evacuation Warning: Debris flow risk",
+      evac: { status: "Evacuation Warning", hazard: "Debris flow risk", headline: "Evacuation Warning: Debris flow risk",
+        zones: ["ALD-EATONCANYON", "KIN-KINNELOA-B", "KIN-KINNELOA-A", "LAC-E183", "ALD-EASTLOMA", "ALD-RUBIO"]
+          .map(name => ({ name, status: "Evacuation Warning" })),
+        info: "LASD: Evacuation Warning for EATON FIRE burn scar area starting 6PM due to possible mud or debris flows. GET READY for possible evacuations if you are near San Gabriel Foothills in Altadena. ALERTLA.ORG." } },
     updated: new Date().toISOString(),
   },
   critical: {
