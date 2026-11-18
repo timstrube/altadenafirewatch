@@ -82,7 +82,55 @@ await check("evacuation order nearby: active, with zone and status", async () =>
   const s = await run({ evac: EVAC_ORDER });
   assert.equal(s.incidents.evacOk, true);
   assert.equal(s.incidents.evacActive, true);
-  assert.equal(s.incidents.evacNote, "LAC-1234 (Evacuation Order)");
+  assert.equal(s.incidents.evacNote, "Evacuation Order");
+  assert.deepEqual(s.incidents.evac.zones, [{ name: "LAC-1234", status: "Evacuation Order" }]);
+  assert.equal(s.incidents.evac.status, "Evacuation Order");
+});
+
+// Shape of the real Cal OES feed on 2026-11-18: six warning zones for debris flow
+// on the Eaton burn scar, ZONE_NAME blank, the zone code only in ZONE_ID.
+const BURN_SCAR_NOTE = "LASD: 11/18/26 9AM - Evacuation Warning for EATON FIRE burn scar area starting Wednesday November 18th 6PM due to possible mud or debris flows. GET READY for possible evacuations if you are near San Gabriel Foothills in Altadena. ALERTLA.ORG.";
+const DEBRIS_WARNING = json({ features: ["ALD-EATONCANYON", "KIN-KINNELOA-B", "KIN-KINNELOA-A", "LAC-E183", "ALD-EASTLOMA", "ALD-RUBIO"]
+  .map(z => ({ attributes: { STATUS: "Evacuation Warning", ZONE_NAME: null, ZONE_ID: "US-CA-XLA-" + z, EVENT_TYPE: null, NOTES: BURN_SCAR_NOTE } })) });
+
+await check("debris-flow warning with blank zone names: every zone named from ZONE_ID, hazard detected", async () => {
+  const s = await run({ evac: DEBRIS_WARNING });
+  const e = s.incidents.evac;
+  assert.equal(s.incidents.evacActive, true);
+  assert.equal(s.incidents.evacNote, "Evacuation Warning: Debris flow risk");
+  assert.equal(e.hazard, "Debris flow risk"); // not "Fire", even though the note says "EATON FIRE burn scar"
+  assert.equal(e.zones.length, 6);
+  assert.deepEqual(e.zones.map(z => z.name), ["ALD-EATONCANYON", "KIN-KINNELOA-B", "KIN-KINNELOA-A", "LAC-E183", "ALD-EASTLOMA", "ALD-RUBIO"]);
+  assert(!JSON.stringify(s.incidents).includes('"Zone"'), "never the bare word Zone");
+  assert.match(e.info, /^LASD: 11\/18\/26/);
+});
+
+await check("mixed statuses: the most severe one leads, and its zones are listed first", async () => {
+  const s = await run({ evac: json({ features: [
+    { attributes: { STATUS: "Evacuation Warning", ZONE_ID: "US-CA-XLA-ALD-RUBIO" } },
+    { attributes: { STATUS: "EVACUATION ORDER", ZONE_ID: "US-CA-XLA-ALD-EASTLOMA", NOTES: "Wildfire spreading east" } },
+    { attributes: { STATUS: "Evacuation Warning", ZONE_ID: "US-CA-XLA-ALD-RUBIO" } }, // duplicate
+    { attributes: { STATUS: "Normal", ZONE_ID: "US-CA-XLA-ALD-OTHER" } },
+  ] }) });
+  const e = s.incidents.evac;
+  assert.equal(e.status, "Evacuation Order");
+  assert.equal(e.hazard, "Fire");
+  assert.equal(s.incidents.evacNote, "Evacuation Order: Fire");
+  assert.deepEqual(e.zones, [{ name: "ALD-EASTLOMA", status: "Evacuation Order" }, { name: "ALD-RUBIO", status: "Evacuation Warning" }]);
+});
+
+await check("no zone name, no ID, no notes: still an active evacuation, never dropped", async () => {
+  const s = await run({ evac: json({ features: [{ attributes: { STATUS: "Shelter in Place" } }] }) });
+  assert.equal(s.incidents.evacActive, true);
+  assert.equal(s.incidents.evacNote, "Shelter in Place");
+  assert.equal(s.incidents.evac.hazard, null);
+  assert.deepEqual(s.incidents.evac.zones, [{ name: "Unnamed zone", status: "Shelter in Place" }]);
+});
+
+await check("no active zones: evac details empty", async () => {
+  const s = await run();
+  assert.equal(s.incidents.evac, null);
+  assert.equal(s.incidents.evacNote, "");
 });
 
 await check("NWS HTTP 500: red flag state marked unknown (error), not 'no warning'", async () => {

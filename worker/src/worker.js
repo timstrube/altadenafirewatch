@@ -182,7 +182,7 @@ async function getRedFlag() {
 async function getIncidents() {
   const envelope = "-118.21,34.14,-118.07,34.26";
   let nifcCount = 0, nifcOk = false;
-  let evacActive = false, evacNote = "", evacOk = false;
+  let evacActive = false, evacNote = "", evacOk = false, evac = null;
 
   try {
     const url = "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/" +
@@ -198,18 +198,73 @@ async function getIncidents() {
     const url = "https://services.arcgis.com/BLN4oKB0N1YSgvY8/arcgis/rest/services/" +
       "CA_EVACUATIONS_CalOESHosted_view/FeatureServer/0/query" +
       `?where=1%3D1&geometry=${envelope}&geometryType=esriGeometryEnvelope` +
-      "&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=STATUS,ZONE_NAME,COUNTY&returnGeometry=false&f=json";
+      "&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=STATUS,ZONE_NAME,ZONE_ID,EVENT_TYPE,NOTES,PUBLIC_INFO&returnGeometry=false&f=json";
     const features = await getArcgisFeatures(url);
-    const active = features.filter(f => {
-      const status = (f.attributes || {}).STATUS;
-      return status && String(status).toUpperCase() !== "NORMAL";
+    const active = features.map(f => f.attributes || {}).filter(a => {
+      return a.STATUS && String(a.STATUS).trim().toUpperCase() !== "NORMAL";
     });
     evacActive = active.length > 0;
-    evacNote = evacActive
-      ? active.map(f => `${f.attributes.ZONE_NAME || "Zone"} (${f.attributes.STATUS})`).slice(0, 2).join(", ")
-      : "";
+    if (evacActive) {
+      evac = summarizeEvacuations(active);
+      evacNote = evac.headline;
+    }
     evacOk = true;
   } catch (e) { console.log("Cal OES evac fetch failed:", e.message); }
 
-  return { nifcCount, nifcOk, evacActive, evacNote, evacOk };
+  return { nifcCount, nifcOk, evacActive, evacNote, evacOk, evac };
+}
+
+/* ---------------- Evacuation details ----------------
+   Turns the active Cal OES zones into: a short headline for the row
+   ("Evacuation Warning: Debris flow risk"), every zone with a readable name,
+   and the official note, for the page's details pop-over. */
+const EVAC_SEVERITY = ["EVACUATION ORDER", "SHELTER IN PLACE", "EVACUATION WARNING"];
+
+function titleCase(s) {
+  return String(s).trim().toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase()).replace(/ In /g, " in ");
+}
+
+// Cal OES often leaves ZONE_NAME blank. ZONE_ID ("US-CA-XLA-ALD-EATONCANYON")
+// carries the zone code that Genasys and alertla.org show ("ALD-EATONCANYON").
+function zoneLabel(a) {
+  const name = typeof a.ZONE_NAME === "string" ? a.ZONE_NAME.trim() : "";
+  if (name) return name;
+  const id = typeof a.ZONE_ID === "string" ? a.ZONE_ID.trim() : "";
+  if (id) return id.replace(/^US-CA-[A-Z]{3}-/i, "");
+  return "Unnamed zone";
+}
+
+function hazardOf(text) {
+  if (/debris|mud\s*flow|mudslide|mud or debris/i.test(text)) return "Debris flow risk";
+  if (/flood/i.test(text)) return "Flood risk";
+  if (/hazmat|hazardous material|gas leak/i.test(text)) return "Hazardous materials";
+  if (/\bfire\b|wildfire/i.test(text)) return "Fire";
+  return null;
+}
+
+function summarizeEvacuations(active) {
+  const rank = s => {
+    const i = EVAC_SEVERITY.indexOf(String(s).trim().toUpperCase());
+    return i === -1 ? EVAC_SEVERITY.length : i;
+  };
+  const worst = active.reduce((w, a) => (rank(a.STATUS) < rank(w) ? a.STATUS : w), active[0].STATUS);
+  const status = titleCase(worst);
+
+  const zones = [];
+  const seen = new Set();
+  for (const a of [...active].sort((x, y) => rank(x.STATUS) - rank(y.STATUS))) {
+    const name = zoneLabel(a);
+    const key = name + "|" + a.STATUS;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    zones.push({ name, status: titleCase(a.STATUS) });
+  }
+
+  const notes = [...new Set(active.map(a => String(a.NOTES || a.PUBLIC_INFO || "").trim()).filter(Boolean))];
+  const info = notes.length ? notes[0].slice(0, 600) : "";
+  // EVENT_TYPE first; otherwise the hazard named in the official note. A debris-flow
+  // warning on a burn scar mentions "fire" too, so debris/flood are checked first.
+  const hazard = hazardOf(String(active.find(a => a.EVENT_TYPE)?.EVENT_TYPE || "")) || hazardOf(notes.join(" "));
+
+  return { status, hazard, zones, info, headline: hazard ? `${status}: ${hazard}` : status };
 }
